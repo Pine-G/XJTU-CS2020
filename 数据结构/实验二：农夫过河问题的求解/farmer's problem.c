@@ -1,24 +1,25 @@
-//Å©·ò¹ıºÓÎÊÌâµÄÇó½â
-//0±íÊ¾ÔÚÄÏ°¶£¬1±íÊ¾ÔÚ±±°¶
-//´Ó×óµ½ÓÒÒÀ´Î±íÊ¾Å©·ò¡¢ÀÇ¡¢²Ë¡¢Ñò
+//å†œå¤«è¿‡æ²³é—®é¢˜çš„æ±‚è§£
+//0è¡¨ç¤ºåœ¨å—å²¸ï¼Œ1è¡¨ç¤ºåœ¨åŒ—å²¸
+//ä»å·¦åˆ°å³ä¾æ¬¡è¡¨ç¤ºå†œå¤«ã€ç‹¼ã€èœã€ç¾Š
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
 #define SIZE 16
 
-int visited[SIZE];		//±êÖ¾Î»£¨ÓÃÓÚ±êÖ¾½áµãÊÇ·ñ±»·ÃÎÊ¹ı£©
-int stack[SIZE];		//Õ»
-int top = 0;			//Õ»¶¥Ö¸Õë
-int number = 0;			//·½°¸ÊıÄ¿
-int interface_bottom = 0;		//Ê¹³ÌĞòÍË³öÊ±·µ»ØĞÅÏ¢ÔÚ½çÃæµ×¶Ë
+int visited[SIZE];			//æ ‡å¿—ä½ï¼ˆç”¨äºæ ‡å¿—ç»“ç‚¹æ˜¯å¦è¢«è®¿é—®è¿‡ï¼‰
+int stack[SIZE];			//æ ˆ
+int top = 0;				//æ ˆé¡¶æŒ‡é’ˆ
+int number = 0;				//æ–¹æ¡ˆæ•°ç›®
+int interface_bottom = 0;	//ä½¿ç¨‹åºé€€å‡ºæ—¶è¿”å›ä¿¡æ¯åœ¨ç•Œé¢åº•ç«¯
 
-char *situation[SIZE] = {"Å©·ò ÀÇ ²Ë Ñò", "Å©·ò ÀÇ ²Ë", "Å©·ò ÀÇ    Ñò", "Å©·ò ÀÇ",
-                         "Å©·ò    ²Ë Ñò", "Å©·ò    ²Ë", "Å©·ò       Ñò", "Å©·ò",
-                         "     ÀÇ ²Ë Ñò", "     ÀÇ ²Ë", "     ÀÇ    Ñò", "     ÀÇ",
-                         "        ²Ë Ñò", "        ²Ë", "           Ñò", "     ¿Õ"
+char *situation[SIZE] = {"å†œå¤« ç‹¼ èœ ç¾Š", "å†œå¤« ç‹¼ èœ", "å†œå¤« ç‹¼    ç¾Š", "å†œå¤« ç‹¼",
+                         "å†œå¤«    èœ ç¾Š", "å†œå¤«    èœ", "å†œå¤«       ç¾Š", "å†œå¤«",
+                         "     ç‹¼ èœ ç¾Š", "     ç‹¼ èœ", "     ç‹¼    ç¾Š", "     ç‹¼",
+                         "        èœ ç¾Š", "        èœ", "           ç¾Š", "     ç©º"
                         };
 
-//º¯ÊıÔ­ĞÍ
+//å‡½æ•°åŸå‹
 void CreateGraph(int matrix[][SIZE]);
 
 int farmer_location(int state);
@@ -44,50 +45,50 @@ void PrintPath(void);
 void SetCCPos(int x, int y);
 
 int main(void) {
-	int matrix[SIZE][SIZE];			//ÁÚ½Ó¾ØÕó´æ´¢Í¼
-	CreateGraph(matrix);			//´´½¨Í¼
-	DFS(matrix, 0, 15);				//Éî¶ÈÓÅÏÈËÑË÷
+	int matrix[SIZE][SIZE];			//é‚»æ¥çŸ©é˜µå­˜å‚¨å›¾
+	CreateGraph(matrix);			//åˆ›å»ºå›¾
+	DFS(matrix, 0, 15);				//æ·±åº¦ä¼˜å…ˆæœç´¢
 
 	return 0;
 }
 
-//´´½¨Í¼
+//åˆ›å»ºå›¾
 void CreateGraph(int matrix[][SIZE]) {
-	//³õÊ¼»¯ÁÚ½Ó¾ØÕó
-	//¶Ô½ÇÏßÔªËØÎª0£¬ÆäÓà¶¼Îª1
+	//åˆå§‹åŒ–é‚»æ¥çŸ©é˜µ
+	//å¯¹è§’çº¿å…ƒç´ ä¸º0ï¼Œå…¶ä½™éƒ½ä¸º1
 	for (int i = 0; i < SIZE; i++) {
-		visited[i] = 0;		//½«±êÖ¾Î»³õÊ¼Îª0
+		visited[i] = 0;		//å°†æ ‡å¿—ä½åˆå§‹ä¸º0
 		for (int j = i; j < SIZE; j++) {
 			if (i == j)
 				matrix[i][j] = 0;
-			else			//ÁÚ½Ó¾ØÕóµÄ¶Ô³ÆĞÔ
+			else			//é‚»æ¥çŸ©é˜µçš„å¯¹ç§°æ€§
 				matrix[i][j] = matrix[j][i] = 1;
 		}
 	}
 
-	//ÅĞ¶Ï²»°²È«×´Ì¬£¨ÀÇºÍÑò¡¢ÑòºÍ²Ë£©
-	//Ê¹µÃÆäËü¶¥µãÓë²»°²È«×´Ì¬µÄ¶¥µã¼äÎŞÂ·¾¶
+	//åˆ¤æ–­ä¸å®‰å…¨çŠ¶æ€ï¼ˆç‹¼å’Œç¾Šã€ç¾Šå’Œèœï¼‰
+	//ä½¿å¾—å…¶å®ƒé¡¶ç‚¹ä¸ä¸å®‰å…¨çŠ¶æ€çš„é¡¶ç‚¹é—´æ— è·¯å¾„
 	for (int i = 0; i < SIZE; i++) {
 		if (unsafe(i)) {
-			visited[i] = 1;		//·ÃÎÊÁË²»°²È«×´Ì¬µÄ¶¥µã
+			visited[i] = 1;		//è®¿é—®äº†ä¸å®‰å…¨çŠ¶æ€çš„é¡¶ç‚¹
 			for (int j = 0; j < SIZE; j++)
 				matrix[i][j] = matrix[j][i] = 0;
 		}
 	}
 
-	//ÅĞ¶ÏÆäËü¶¥µãÊÇ·ñÏàÁ¬
-	//¼´´ÓÄ³Ò»¶¥µã³ö·¢ÄÜ·ñÖ±½Óµ½´ïÁíÒ»¶¥µã
+	//åˆ¤æ–­å…¶å®ƒé¡¶ç‚¹æ˜¯å¦ç›¸è¿
+	//å³ä»æŸä¸€é¡¶ç‚¹å‡ºå‘èƒ½å¦ç›´æ¥åˆ°è¾¾å¦ä¸€é¡¶ç‚¹
 	for (int i = 0; i < SIZE - 1; i++)
 		for (int j = i + 1; j < SIZE ; j++)
 			if (visited[i] == 0 && visited[j] == 0 && unavailable(i, j))
 				matrix[i][j] = matrix[j][i] = 0;
 
-	//½«±êÖ¾Î»ÖØÖÃÎª0
+	//å°†æ ‡å¿—ä½é‡ç½®ä¸º0
 	for (int i = 0; i < SIZE; i++)
 		visited[i] = 0;
 }
 
-//ÅĞ¶ÏÅ©·ò¡¢ÀÇ¡¢²Ë¡¢ÑòµÄÎ»ÖÃ
+//åˆ¤æ–­å†œå¤«ã€ç‹¼ã€èœã€ç¾Šçš„ä½ç½®
 int farmer_location(int state) {
 	return ((state & 0x08) != 0);
 }
@@ -104,19 +105,19 @@ int sheep_location(int state) {
 	return ((state & 0x01) != 0);
 }
 
-//ÅĞ¶Ï²»°²È«×´Ì¬
+//åˆ¤æ–­ä¸å®‰å…¨çŠ¶æ€
 int unsafe(int state) {
 	int judge = 0;
-	//ÀÇºÍÑòµ¥¶ÀÔÚÒ»Æğ
+	//ç‹¼å’Œç¾Šå•ç‹¬åœ¨ä¸€èµ·
 	if (wolf_location(state) == sheep_location(state) && wolf_location(state) != farmer_location(state))
 		judge = 1;
-	//ÑòºÍ²Ëµ¥¶ÀÔÚÒ»Æğ
+	//ç¾Šå’Œèœå•ç‹¬åœ¨ä¸€èµ·
 	if (cabbage_location(state) == sheep_location(state) && sheep_location(state) != farmer_location(state))
 		judge = 1;
 	return judge;
 }
 
-//ÀÇµ½´ï¶Ô°¶
+//ç‹¼åˆ°è¾¾å¯¹å²¸
 int case1(int i, int j) {
 	if (wolf_location(i) != wolf_location(j)) {
 		if (sheep_location(i) == sheep_location(j) && cabbage_location(i) == cabbage_location(j))
@@ -127,7 +128,7 @@ int case1(int i, int j) {
 		return 0;
 }
 
-//²Ëµ½´ï¶Ô°¶
+//èœåˆ°è¾¾å¯¹å²¸
 int case2(int i, int j) {
 	if (cabbage_location(i) != cabbage_location(j)) {
 		if (sheep_location(i) == sheep_location(j) && wolf_location(i) == wolf_location(j))
@@ -138,7 +139,7 @@ int case2(int i, int j) {
 		return 0;
 }
 
-//Ñòµ½´ï¶Ô°¶
+//ç¾Šåˆ°è¾¾å¯¹å²¸
 int case3(int i, int j) {
 	if (sheep_location(i) != sheep_location(j)) {
 		if (wolf_location(i) == wolf_location(j) && cabbage_location(i) == cabbage_location(j))
@@ -149,22 +150,22 @@ int case3(int i, int j) {
 		return 0;
 }
 
-//ÅĞ¶ÏÆäËü¶¥µãÊÇ·ñÏàÁ¬
+//åˆ¤æ–­å…¶å®ƒé¡¶ç‚¹æ˜¯å¦ç›¸è¿
 int unavailable(int i, int j) {
 	int judge = 1;
-	// <i,j>±ß´æÔÚ
+	// <i,j>è¾¹å­˜åœ¨
 	if (farmer_location(i) != farmer_location(j)) {
-		//Å©·ò¶À×Ô·µ»Ø¶Ô°¶
+		//å†œå¤«ç‹¬è‡ªè¿”å›å¯¹å²¸
 		if ((i & 0x07) == (j & 0x07))
 			judge = 0;
-		//Å©·ò´ø¶«Î÷·µ»Ø¶Ô°¶
+		//å†œå¤«å¸¦ä¸œè¥¿è¿”å›å¯¹å²¸
 		if (case1(i, j) || case2(i, j) || case3(i, j))
 			judge = 0;
 	}
 	return judge;
 }
 
-//Éî¶ÈÓÅÏÈËÑË÷
+//æ·±åº¦ä¼˜å…ˆæœç´¢
 void DFS(int matrix[][SIZE], int start, int end) {
 	visited[start] = 1;
 	push(start);
@@ -177,20 +178,20 @@ void DFS(int matrix[][SIZE], int start, int end) {
 	visited[start] = 0;
 }
 
-//Êä³öÂ·¾¶
+//è¾“å‡ºè·¯å¾„
 void PrintPath(void) {
 	int i;
 	int row = 10;
 	int col = 30;
 	SetCCPos(col * number, row * i);
-	printf("·½°¸%d£º", number + 1);
+	printf("æ–¹æ¡ˆ%dï¼š", number + 1);
 	for (i = 0; i < top - 1; i++) {
 		SetCCPos(col * number, row * i + 2);
 		puts(situation[stack[i]]);
 		SetCCPos(col * number, row * i + 3);
 		puts("--------------");
 		SetCCPos(col * number, row * i + 4);
-		puts("    Ğ¡ºÓ");
+		puts("    å°æ²³");
 		SetCCPos(col * number, row * i + 5);
 		puts("--------------");
 		SetCCPos(col * number, row * i + 6);
@@ -208,7 +209,7 @@ void PrintPath(void) {
 	SetCCPos(col * number, row * i + 3);
 	puts("--------------");
 	SetCCPos(col * number, row * i + 4);
-	puts("    Ğ¡ºÓ");
+	puts("    å°æ²³");
 	SetCCPos(col * number, row * i + 5);
 	puts("--------------");
 	SetCCPos(col * number, row * i + 6);
@@ -219,17 +220,17 @@ void PrintPath(void) {
 	number++;
 }
 
-//ÅĞ¶ÏÕ»ÊÇ·ñÎª¿Õ
+//åˆ¤æ–­æ ˆæ˜¯å¦ä¸ºç©º
 int StackIsEmpty(void) {
 	return (top == 0) ? 1 : 0;
 }
 
-//ÅĞ¶ÏÕ»ÊÇ·ñÒÑÂú
+//åˆ¤æ–­æ ˆæ˜¯å¦å·²æ»¡
 int StackIsFull(void) {
 	return (top == SIZE) ? 1 : 0;
 }
 
-//ÈëÕ»
+//å…¥æ ˆ
 int push(int data) {
 	if (StackIsFull())
 		return 0;
@@ -238,7 +239,7 @@ int push(int data) {
 	return 1;
 }
 
-//³öÕ»
+//å‡ºæ ˆ
 int pop(void) {
 	if (StackIsEmpty()) {
 		printf("False! Stack is Empty.\n");
@@ -247,12 +248,12 @@ int pop(void) {
 		return stack[--top];
 }
 
-//ÉèÖÃ¹â±êÎ»ÖÃ
+//è®¾ç½®å…‰æ ‡ä½ç½®
 void SetCCPos(int x, int y) {
 	HANDLE hOut;
-	hOut = GetStdHandle(STD_OUTPUT_HANDLE);//»ñÈ¡±ê×¢Êä³ö¾ä±ú
+	hOut = GetStdHandle(STD_OUTPUT_HANDLE);//è·å–æ ‡æ³¨è¾“å‡ºå¥æŸ„
 	COORD pos;
 	pos.X = x;
 	pos.Y = y;
-	SetConsoleCursorPosition(hOut, pos);//Æ«ÒÆ¹â±êÎ»ÖÃ
+	SetConsoleCursorPosition(hOut, pos);//åç§»å…‰æ ‡ä½ç½®
 }
