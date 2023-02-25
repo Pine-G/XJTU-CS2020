@@ -6,71 +6,71 @@
 #include <algorithm>
 using namespace std;
 
-// Ëã·¨ÒªÇó£ºÉè¼ÆÒ»¸öËã·¨Çó T µÄ×îĞ¡¶¥µã¼¯ºÏ S£¬Ê¹ T/S ÎªÒ»¸ö d É­ÁÖ¡£
+// ç®—æ³•è¦æ±‚ï¼šè®¾è®¡ä¸€ä¸ªç®—æ³•æ±‚ T çš„æœ€å°é¡¶ç‚¹é›†åˆ Sï¼Œä½¿ T/S ä¸ºä¸€ä¸ª d æ£®æ—ã€‚
 
-//Ê÷µÄ½áµã
+//æ ‘çš„ç»“ç‚¹
 struct Node {
-	float weight;			//¸Ã½áµãµ½¸¸½áµãµÄ±ßÉÏµÄÈ¨Öµ
-	int parent_id;			//¸Ã½áµãµÄ¸¸½áµã±àºÅ
-	int num;				//¸Ã½áµãµÄ×Ó½áµã¸öÊı
-	float max_road = 0;		//¸Ã½áµãµ½¸ù½áµãµÄ×î´óÂ·¾¶
-	bool cut = false;		//ÊÇ·ñÔÚ¼¯ºÏ S ÖĞ
+    float weight;           //è¯¥ç»“ç‚¹åˆ°çˆ¶ç»“ç‚¹çš„è¾¹ä¸Šçš„æƒå€¼
+    int parent_id;          //è¯¥ç»“ç‚¹çš„çˆ¶ç»“ç‚¹ç¼–å·
+    int num;                //è¯¥ç»“ç‚¹çš„å­ç»“ç‚¹ä¸ªæ•°
+    float max_road = 0;     //è¯¥ç»“ç‚¹åˆ°æ ¹ç»“ç‚¹çš„æœ€å¤§è·¯å¾„
+    bool cut = false;       //æ˜¯å¦åœ¨é›†åˆ S ä¸­
 };
 
 class dTree {
-	public:
-		dTree(int a, int b) : n(a), d(b) {
-			//´Ë´¦Îª¹¹Ôìº¯Êı£¬³õÊ¼»¯¹¹½¨Ê÷¡£
-			node = new Node[n];
-			node[0].parent_id = -1;
-			node[0].weight = 0;
-			for (int i = 0; i < n; i++) {
-				cin >> node[i].num;
-				for (int j = 0; j < node[i].num; j++) {
-					int index;
-					cin >> index;
-					cin >> node[index].weight;
-					node[index].parent_id = i;
-				}
-			}
-		}
-		~dTree(void) {
-			delete[] node;
-		}
-		void solution(void) {
-			//mainº¯ÊıÍ¨¹ıµ÷ÓÃdTreeÀàµÄsolutionº¯Êı£¬Í¨¹ıcoutÊä³ö½á¹û¡£
-			int count = 0;
-			for (int i = n - 1; i >= 0; i--) {
-				if (node[i].max_road > d) {
-					//É¾³ı½áµã
-					node[i].cut = true;
-					count++;
-				} else {
-					//¸üĞÂ¸¸½áµã
-					int par = node[i].parent_id;
-					if (par >= 0 && node[par].max_road < node[i].max_road + node[i].weight)
-						node[par].max_road = node[i].max_road + node[i].weight;
-				}
-			}
-			cout << count;
-		}
-	private:
-		int n;			//½áµã¸öÊı
-		int d;			//×î´óÂ·¾¶³¤¶È
-		Node *node;		//½áµãÊı×é
+    public:
+        dTree(int a, int b) : n(a), d(b) {
+            //æ­¤å¤„ä¸ºæ„é€ å‡½æ•°ï¼Œåˆå§‹åŒ–æ„å»ºæ ‘ã€‚
+            node = new Node[n];
+            node[0].parent_id = -1;
+            node[0].weight = 0;
+            for (int i = 0; i < n; i++) {
+                cin >> node[i].num;
+                for (int j = 0; j < node[i].num; j++) {
+                    int index;
+                    cin >> index;
+                    cin >> node[index].weight;
+                    node[index].parent_id = i;
+                }
+            }
+        }
+        ~dTree(void) {
+            delete[] node;
+        }
+        void solution(void) {
+            //mainå‡½æ•°é€šè¿‡è°ƒç”¨dTreeç±»çš„solutionå‡½æ•°ï¼Œé€šè¿‡coutè¾“å‡ºç»“æœã€‚
+            int count = 0;
+            for (int i = n - 1; i >= 0; i--) {
+                if (node[i].max_road > d) {
+                    //åˆ é™¤ç»“ç‚¹
+                    node[i].cut = true;
+                    count++;
+                } else {
+                    //æ›´æ–°çˆ¶ç»“ç‚¹
+                    int par = node[i].parent_id;
+                    if (par >= 0 && node[par].max_road < node[i].max_road + node[i].weight)
+                        node[par].max_road = node[i].max_road + node[i].weight;
+                }
+            }
+            cout << count;
+        }
+    private:
+        int n;          //ç»“ç‚¹ä¸ªæ•°
+        int d;          //æœ€å¤§è·¯å¾„é•¿åº¦
+        Node *node;     //ç»“ç‚¹æ•°ç»„
 };
 
-//ÄãµÄ´úÂëÖ»ĞèÒª²¹È«ÉÏ·½dTreeÀàÀ´ÊµÏÖËã·¨
+//ä½ çš„ä»£ç åªéœ€è¦è¡¥å…¨ä¸Šæ–¹dTreeç±»æ¥å®ç°ç®—æ³•
 
-//ÀàËùĞèÒªµÄÆäËû±äÁ¿¡¢º¯Êı¿É×Ô¼º¶¨Òå±àĞ´
+//ç±»æ‰€éœ€è¦çš„å…¶ä»–å˜é‡ã€å‡½æ•°å¯è‡ªå·±å®šä¹‰ç¼–å†™
 
-//Ö»ĞèÒªÌá½»Õâ¼¸ĞĞ´úÂë£¬ÆäËûµÄ¶¼ÊÇºóÌ¨ÏµÍ³×Ô¶¯Íê³ÉµÄ£¬ÀàËÆÓÚ LeetCode£¬ÏÂÃæÎªmainº¯ÊıµÄ´úÂë
+//åªéœ€è¦æäº¤è¿™å‡ è¡Œä»£ç ï¼Œå…¶ä»–çš„éƒ½æ˜¯åå°ç³»ç»Ÿè‡ªåŠ¨å®Œæˆçš„ï¼Œç±»ä¼¼äº LeetCodeï¼Œä¸‹é¢ä¸ºmainå‡½æ•°çš„ä»£ç 
 
 
 int main() {
-	int n, d;			//nÎª¶¥µã¸öÊı£¬dÎªÂ·¾¶³¤¶È
-	cin >> n >> d;
-	dTree dt(n, d);    	//¹¹½¨Óë³õÊ¼»¯Ê÷
-	dt.solution();      //Í¨¹ısolutionº¯ÊıÊä³ö½á¹û
-	return 0;
+    int n, d;           //nä¸ºé¡¶ç‚¹ä¸ªæ•°ï¼Œdä¸ºè·¯å¾„é•¿åº¦
+    cin >> n >> d;
+    dTree dt(n, d);     //æ„å»ºä¸åˆå§‹åŒ–æ ‘
+    dt.solution();      //é€šè¿‡solutionå‡½æ•°è¾“å‡ºç»“æœ
+    return 0;
 }
