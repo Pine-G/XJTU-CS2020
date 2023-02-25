@@ -4,117 +4,117 @@
 using namespace std;
 
 struct Node {
-	float lcost;			//×ÓÊ÷·ÑÓÃµÄÏÂ½ç
-	float rcost;			//x[s:n-1]ÖĞ¶¥µã×îĞ¡³ö±ß·ÑÓÃºÍ
-	float cost;				//µ±Ç°·ÑÓÃ
-	int s;					//¸ù½áµãµ½µ±Ç°½áµãµÄÂ·¾¶Îªx[0:s]
-	int *x;					//µ±Ç°Â·¾¶£¬x[s+1:n-1]´ıËÑË÷
-	Node(float a, float b, float c, int d, int *e): lcost(a), rcost(b), cost(c), s(d), x(e) {}
-	bool operator <(const Node &node)const {
-		return node.lcost < lcost;
-	}
+    float lcost;            //å­æ ‘è´¹ç”¨çš„ä¸‹ç•Œ
+    float rcost;            //x[s:n-1]ä¸­é¡¶ç‚¹æœ€å°å‡ºè¾¹è´¹ç”¨å’Œ
+    float cost;             //å½“å‰è´¹ç”¨
+    int s;                  //æ ¹ç»“ç‚¹åˆ°å½“å‰ç»“ç‚¹çš„è·¯å¾„ä¸ºx[0:s]
+    int *x;                 //å½“å‰è·¯å¾„ï¼Œx[s+1:n-1]å¾…æœç´¢
+    Node(float a, float b, float c, int d, int *e): lcost(a), rcost(b), cost(c), s(d), x(e) {}
+    bool operator <(const Node &node)const {
+        return node.lcost < lcost;
+    }
 };
 
-const int n = 5;			//Í¼GµÄ¶¥µã¸öÊı
-int bestp[n];				//×îÓÅ½â
+const int n = 5;            //å›¾Gçš„é¡¶ç‚¹ä¸ªæ•°
+int bestp[n];               //æœ€ä¼˜è§£
 
-//ÁÚ½Ó¾ØÕó
+//é‚»æ¥çŸ©é˜µ
 float a[n + 1][n + 1] = {
-	0, 0, 0, 0, 0, 0,
-	0, -1, 5, 61, 34, 12,
-	0, 57, -1, 43, 20, 7,
-	0, 39, 42, -1, 8, 21,
-	0, 6, 50, 42, -1, 8,
-	0, 41, 26, 10, 35, -1
+    0, 0, 0, 0, 0, 0,
+    0, -1, 5, 61, 34, 12,
+    0, 57, -1, 43, 20, 7,
+    0, 39, 42, -1, 8, 21,
+    0, 6, 50, 42, -1, 8,
+    0, 41, 26, 10, 35, -1
 };
 
-//ÂÃĞĞÊÛ»õÔ±ÎÊÌâµÄÓÅÏÈ¶ÓÁĞÊ½·ÖÖ§ÏŞ½ç·¨
+//æ—…è¡Œå”®è´§å‘˜é—®é¢˜çš„ä¼˜å…ˆé˜Ÿåˆ—å¼åˆ†æ”¯é™ç•Œæ³•
 float bbTSP(void) {
-	//Çó×îĞ¡³ö±ß·ÑÓÃ
-	float minOut[n + 1];
-	float minSum = 0;
-	for (int i = 1; i <= n; i++) {
-		minOut[i] = FLT_MAX;
-		for (int j = 1; j <= n; j++) {
-			if (a[i][j] > 0 && a[i][j] < minOut[i])
-				minOut[i] = a[i][j];
-		}
-		if (minOut[i] == FLT_MAX)
-			return FLT_MAX;		//ÎŞ»ØÂ·
-		minSum += minOut[i];
-	}
+    //æ±‚æœ€å°å‡ºè¾¹è´¹ç”¨
+    float minOut[n + 1];
+    float minSum = 0;
+    for (int i = 1; i <= n; i++) {
+        minOut[i] = FLT_MAX;
+        for (int j = 1; j <= n; j++) {
+            if (a[i][j] > 0 && a[i][j] < minOut[i])
+                minOut[i] = a[i][j];
+        }
+        if (minOut[i] == FLT_MAX)
+            return FLT_MAX;     //æ— å›è·¯
+        minSum += minOut[i];
+    }
 
-	//³õÊ¼»¯Â·¾¶
-	int *x = new int[n];
-	for (int i = 0; i < n; i++)
-		x[i] = i + 1;
+    //åˆå§‹åŒ–è·¯å¾„
+    int *x = new int[n];
+    for (int i = 0; i < n; i++)
+        x[i] = i + 1;
 
-	//³õÊ¼»¯Ğ¡¶¥¶Ñ
-	priority_queue<Node> MinHeap;
-	Node node(0.f, minSum, 0.f, 0, x);
+    //åˆå§‹åŒ–å°é¡¶å †
+    priority_queue<Node> MinHeap;
+    Node node(0.f, minSum, 0.f, 0, x);
 
-	float bestc = FLT_MAX;		//×îÓÅÖµ
-	bool exist = true;
+    float bestc = FLT_MAX;      //æœ€ä¼˜å€¼
+    bool exist = true;
 
-	//ËÑË÷ÅÅÁĞÊ÷
-	while (node.lcost < bestc) {
-		x = node.x;
-		//µ±Ç°À©Õ¹½áµãÊÇÒ¶½áµãµÄ¸¸½áµã
-		if (node.s == n - 2) {
-			if (a[x[n - 2]][x[n - 1]] > 0 && a[x[n - 1]][1] > 0 && node.cost + a[x[n - 2]][x[n - 1]] + a[x[n - 1]][1] < bestc) {
-				bestc = node.cost + a[x[n - 2]][x[n - 1]] + a[x[n - 1]][1];
-				for (int j = 0; j < n; j++)
-					bestp[j] = x[j];
-			}
-		} else {
-			//²úÉúµ±Ç°À©Õ¹½áµãµÄ×Ó½áµã
-			for (int i = node.s + 1; i < n; i++) {
-				if (a[x[node.s]][x[i]] > 0) {
-					float cost = node.cost + a[x[node.s]][x[i]];
-					float rcost = node.rcost - minOut[x[node.s]];
-					float lcost = cost + rcost;
-					//×ÓÊ÷¿ÉÄÜº¬×îÓÅ½â£¬½áµã²åÈëĞ¡¶¥¶Ñ
-					if (lcost < bestc) {
-						int *xx = new int[n];
-						for (int j = 0; j < n; j++)
-							xx[j] = x[j];
-						xx[node.s + 1] = x[i];
-						xx[i] = x[node.s + 1];
-						MinHeap.push(Node(lcost, rcost, cost, node.s + 1, xx));
-					}
-				}
-			}
-		}
-		delete[] x;
-		//È¡ÏÂÒ»À©Õ¹½áµã
-		if (!MinHeap.empty()) {
-			node = MinHeap.top();
-			MinHeap.pop();
-		} else {
-			exist = false;
-			break;
-		}
-	}
+    //æœç´¢æ’åˆ—æ ‘
+    while (node.lcost < bestc) {
+        x = node.x;
+        //å½“å‰æ‰©å±•ç»“ç‚¹æ˜¯å¶ç»“ç‚¹çš„çˆ¶ç»“ç‚¹
+        if (node.s == n - 2) {
+            if (a[x[n - 2]][x[n - 1]] > 0 && a[x[n - 1]][1] > 0 && node.cost + a[x[n - 2]][x[n - 1]] + a[x[n - 1]][1] < bestc) {
+                bestc = node.cost + a[x[n - 2]][x[n - 1]] + a[x[n - 1]][1];
+                for (int j = 0; j < n; j++)
+                    bestp[j] = x[j];
+            }
+        } else {
+            //äº§ç”Ÿå½“å‰æ‰©å±•ç»“ç‚¹çš„å­ç»“ç‚¹
+            for (int i = node.s + 1; i < n; i++) {
+                if (a[x[node.s]][x[i]] > 0) {
+                    float cost = node.cost + a[x[node.s]][x[i]];
+                    float rcost = node.rcost - minOut[x[node.s]];
+                    float lcost = cost + rcost;
+                    //å­æ ‘å¯èƒ½å«æœ€ä¼˜è§£ï¼Œç»“ç‚¹æ’å…¥å°é¡¶å †
+                    if (lcost < bestc) {
+                        int *xx = new int[n];
+                        for (int j = 0; j < n; j++)
+                            xx[j] = x[j];
+                        xx[node.s + 1] = x[i];
+                        xx[i] = x[node.s + 1];
+                        MinHeap.push(Node(lcost, rcost, cost, node.s + 1, xx));
+                    }
+                }
+            }
+        }
+        delete[] x;
+        //å–ä¸‹ä¸€æ‰©å±•ç»“ç‚¹
+        if (!MinHeap.empty()) {
+            node = MinHeap.top();
+            MinHeap.pop();
+        } else {
+            exist = false;
+            break;
+        }
+    }
 
-	//ÊÍ·ÅÄÚ´æ
-	if (exist)
-		delete[] node.x;
-	while (!MinHeap.empty()) {
-		node = MinHeap.top();
-		MinHeap.pop();
-		delete[] node.x;
-	}
+    //é‡Šæ”¾å†…å­˜
+    if (exist)
+        delete[] node.x;
+    while (!MinHeap.empty()) {
+        node = MinHeap.top();
+        MinHeap.pop();
+        delete[] node.x;
+    }
 
-	return bestc;
+    return bestc;
 }
 
-//²âÊÔ³ÌĞò
+//æµ‹è¯•ç¨‹åº
 int main(void) {
-	cout << "×îĞ¡·ÑÓÃ£º" << bbTSP() << endl;
-	cout << "Â·¾¶£º";
-	for (int i = 0; i < n; i++)
-		cout << bestp[i] << "->";
-	cout << bestp[0] << endl;
+    cout << "æœ€å°è´¹ç”¨ï¼š" << bbTSP() << endl;
+    cout << "è·¯å¾„ï¼š";
+    for (int i = 0; i < n; i++)
+        cout << bestp[i] << "->";
+    cout << bestp[0] << endl;
 
-	return 0;
+    return 0;
 }
