@@ -1,0 +1,48 @@
+810f00fc	//lb $t7 252($t0)
+910e00fc	//lbu $t6 252($t0)
+850d00fc	//lh $t5 252($t0)
+950c00fc	//lhu $t4 252($t0)
+8d0b00fc	//lw $t3 252($t0)
+a10000ff	//sb $zero 255($t0)
+a50000f8	//sh $zero 248($t0)
+ad0000f4	//sw $zero 244($t0)
+016c7820	//add $t7 $t3 $t4
+016c7021	//addu $t6 $t3 $t4
+016c7822	//sub $t7 $t3 $t4
+016c7023	//subu $t6 $t3 $t4
+016c0018	//mult $t3 $t4
+016c0019	//multu $t3 $t4
+016c001a	//div $t3 $t4
+016c001b	//divu $t3 $t4
+3c0a8000	//lui $t2 0x8000
+000b7900	//sll $t7 $t3 4
+000b7902	//srl $t7 $t3 4
+000b7903	//sra $t7 $t3 4
+018b7004	//sllv $t6 $t3 $t4
+018b7006	//srlv $t6 $t3 $t4
+018b7007	//srav $t6 $t3 $t4
+01cf6824	//and $t5 $t6 $t7
+01cf6825	//or $t5 $t6 $t7
+01cf6826	//xor $t5 $t6 $t7
+01cf6827	//nor $t5 $t6 $t7
+214c1234	//addi $t4 $t2 0x1234
+254b1234	//addiu $t3 $t2 0x1234
+31cfffff	//andi $t7 $t6 0xffff
+35cfffff	//ori $t7 $t6 0xffff
+39cfffff	//xori $t7 $t6 0xffff
+294e0001	//slti $t6 $t2 0x0001
+2d4e0001	//sltiu $t6 $t2 0x0001
+152a0001	//bne $t1 $t2 loop1
+3718ffff	//ori $t8 $t8 0xffff
+20180001	//loop1: addi $t8 $zero 1
+12110001	//beq $s0 $s1 loop2
+3718ffff	//ori $t8 $t8 0xffff
+20190001	//loop2: addi $t9 $zero 1
+0800002a	//j jump1
+33180000	//andi $t8 $t8 0x0000
+20180002	//jump1: addi $t8 $zero 2
+0c00002d	//jal jump2
+33180000	//andi $t8 $t8 0x0000
+20190002	//jump2: addi $t9 $zero 2
+00000000	//nop
+00000008	//jr $zero
