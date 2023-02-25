@@ -13,137 +13,137 @@ int best[COL];
 int now_sum;
 int max_sum;
 
-//ÅĞ¶ÏµÚiÁĞºÍµÚjÁĞÊÇ·ñ»¥³â
+//åˆ¤æ–­ç¬¬iåˆ—å’Œç¬¬jåˆ—æ˜¯å¦äº’æ–¥
 void judge(void) {
-	for (int i = 0; i < COL; i++)
-		for (int j = 0; j < COL; j++)
-			mutex[i][j] = true;
+    for (int i = 0; i < COL; i++)
+        for (int j = 0; j < COL; j++)
+            mutex[i][j] = true;
 
-	for (int i = 0; i < COL - 1; i++) {
-		for (int j = i + 1; j < COL; j++) {
-			bool tab = false;
-			for (int k = 0; k < ROW; k++) {
-				if (matrix[k][i] && matrix[k][j]) {
-					tab = true;
-					break;
-				}
-			}
-			if (tab)
-				mutex[i][j] = mutex[j][i] = false;
-		}
-	}
+    for (int i = 0; i < COL - 1; i++) {
+        for (int j = i + 1; j < COL; j++) {
+            bool tab = false;
+            for (int k = 0; k < ROW; k++) {
+                if (matrix[k][i] && matrix[k][j]) {
+                    tab = true;
+                    break;
+                }
+            }
+            if (tab)
+                mutex[i][j] = mutex[j][i] = false;
+        }
+    }
 }
 
-//ÅĞ¶Ï¼¯ºÏÊÇ·ñÎª¿Õ
+//åˆ¤æ–­é›†åˆæ˜¯å¦ä¸ºç©º
 bool empty(int k) {
-	for (int i = 0; i < COL; i++)
-		if (result[i] == k)
-			return false;
-	return true;
+    for (int i = 0; i < COL; i++)
+        if (result[i] == k)
+            return false;
+    return true;
 }
 
-//Ô¼Êøº¯Êı
-//µÚjÁĞ¿ÉÒÔ·ÅÈë¼¯ºÏA£¨k=-1£©»òB£¨k=1£©ÖĞ
+//çº¦æŸå‡½æ•°
+//ç¬¬jåˆ—å¯ä»¥æ”¾å…¥é›†åˆAï¼ˆk=-1ï¼‰æˆ–Bï¼ˆk=1ï¼‰ä¸­
 bool constraint(int k, int j) {
-	for (int i = 0; i < COL; i++) {
-		if (result[i] != -k)
-			continue;
-		else if (mutex[i][j])
-			continue;
-		else
-			return false;
-	}
-	return true;
+    for (int i = 0; i < COL; i++) {
+        if (result[i] != -k)
+            continue;
+        else if (mutex[i][j])
+            continue;
+        else
+            return false;
+    }
+    return true;
 }
 
-//¼ÆËã¼¯ºÏÔªËØ¸öÊı
+//è®¡ç®—é›†åˆå…ƒç´ ä¸ªæ•°
 int count(int k, int *array) {
-	int sum = 0;
-	for (int i = 0; i < COL; i++) {
-		if (array[i] == k)
-			sum++;
-	}
-	return sum;
+    int sum = 0;
+    for (int i = 0; i < COL; i++) {
+        if (array[i] == k)
+            sum++;
+    }
+    return sum;
 }
 
-//Êä³ö¿ØÖÆ
-//¼ÙÉèÊä³öµÚÒ»ĞĞÎªT1£¬µÚ¶şĞĞÎªT2
-//T1µÄÔªËØ¸öÊı´óÓÚT2
-//ÈôÔªËØ¸öÊıÏàÍ¬£¬ÔòT1µÄÔªËØºÍĞ¡ÓÚT2
+//è¾“å‡ºæ§åˆ¶
+//å‡è®¾è¾“å‡ºç¬¬ä¸€è¡Œä¸ºT1ï¼Œç¬¬äºŒè¡Œä¸ºT2
+//T1çš„å…ƒç´ ä¸ªæ•°å¤§äºT2
+//è‹¥å…ƒç´ ä¸ªæ•°ç›¸åŒï¼Œåˆ™T1çš„å…ƒç´ å’Œå°äºT2
 int output_control(void) {
-	int A_num = count(A, best), B_num = count(B, best);
-	if (A_num > B_num)
-		return A;
-	else if (A_num < B_num)
-		return B;
-	else {
-		int A_sum = 0, B_sum = 0;
-		for (int i = 0; i < COL; i++) {
-			if (best[i] == A)
-				A_sum += i;
-			else if (best[i] == B)
-				B_sum += i;
-		}
-		return (A_sum < B_sum) ? A : B;
-	}
+    int A_num = count(A, best), B_num = count(B, best);
+    if (A_num > B_num)
+        return A;
+    else if (A_num < B_num)
+        return B;
+    else {
+        int A_sum = 0, B_sum = 0;
+        for (int i = 0; i < COL; i++) {
+            if (best[i] == A)
+                A_sum += i;
+            else if (best[i] == B)
+                B_sum += i;
+        }
+        return (A_sum < B_sum) ? A : B;
+    }
 }
 
-//»ØËİ·¨
+//å›æº¯æ³•
 void backtrack(int t) {
-	if (t == COL) {
-		if (!empty(A) && !empty(B)) {
-			if (now_sum > max_sum) {
-				max_sum = now_sum;
-				for (int i = 0; i < COL; i++)
-					best[i] = result[i];
-			}
-			//AºÍBÔªËØ¸öÊı²îµÄ¾ø¶ÔÖµ×îĞ¡
-			else if (now_sum == max_sum) {
-				int a1 = count(A, best), b1 = count(B, best);
-				int a2 = count(A, result), b2 = count(B, result);
-				if (abs(a1 - b1) > abs(a2 - b2))
-					for (int i = 0; i < COL; i++)
-						best[i] = result[i];
-			}
-		}
-	} else {
-		if (constraint(A, t)) {
-			result[t] = A;
-			now_sum++;
-			backtrack(t + 1);
-			now_sum--;
-			result[t] = 0;
-		}
-		if (constraint(B, t)) {
-			result[t] = B;
-			now_sum++;
-			backtrack(t + 1);
-			now_sum--;
-			result[t] = 0;
-		}
-		backtrack(t + 1);
-	}
+    if (t == COL) {
+        if (!empty(A) && !empty(B)) {
+            if (now_sum > max_sum) {
+                max_sum = now_sum;
+                for (int i = 0; i < COL; i++)
+                    best[i] = result[i];
+            }
+            //Aå’ŒBå…ƒç´ ä¸ªæ•°å·®çš„ç»å¯¹å€¼æœ€å°
+            else if (now_sum == max_sum) {
+                int a1 = count(A, best), b1 = count(B, best);
+                int a2 = count(A, result), b2 = count(B, result);
+                if (abs(a1 - b1) > abs(a2 - b2))
+                    for (int i = 0; i < COL; i++)
+                        best[i] = result[i];
+            }
+        }
+    } else {
+        if (constraint(A, t)) {
+            result[t] = A;
+            now_sum++;
+            backtrack(t + 1);
+            now_sum--;
+            result[t] = 0;
+        }
+        if (constraint(B, t)) {
+            result[t] = B;
+            now_sum++;
+            backtrack(t + 1);
+            now_sum--;
+            result[t] = 0;
+        }
+        backtrack(t + 1);
+    }
 }
 
 int main(void) {
-	//ÊäÈë
-	for (int i = 0; i < ROW; i++)
-		for (int j = 0; j < COL; j++)
-			cin >> matrix[i][j];
+    //è¾“å…¥
+    for (int i = 0; i < ROW; i++)
+        for (int j = 0; j < COL; j++)
+            cin >> matrix[i][j];
 
-	//Çó½â
-	judge();
-	backtrack(0);
+    //æ±‚è§£
+    judge();
+    backtrack(0);
 
-	//Êä³ö
-	int k = output_control();
-	for (int i = 0; i < COL; i++)
-		if (best[i] == k)
-			cout << i << ' ';
-	cout << endl;
-	for (int i = 0; i < COL; i++)
-		if (best[i] == -k)
-			cout << i << ' ';
+    //è¾“å‡º
+    int k = output_control();
+    for (int i = 0; i < COL; i++)
+        if (best[i] == k)
+            cout << i << ' ';
+    cout << endl;
+    for (int i = 0; i < COL; i++)
+        if (best[i] == -k)
+            cout << i << ' ';
 
-	return 0;
+    return 0;
 }
