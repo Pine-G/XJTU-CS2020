@@ -2,94 +2,94 @@
 #include <cfloat>
 using namespace std;
 
-const int n = 5;			//Í¼GµÄ¶¥µã¸öÊı
-int x[n + 1];				//µ±Ç°½â
-int best_x[n + 1];			//µ±Ç°×îÓÅ½â
-float cost = 0;				//µ±Ç°·ÑÓÃ
-float min_cost = FLT_MAX;	//µ±Ç°×îÓÅÖµ
-float min_x[n + 1];			//´Ó¶¥µãi·¢³öµÄ±ßµÄ×îĞ¡·ÑÓÃ
+const int n = 5;            //å›¾Gçš„é¡¶ç‚¹ä¸ªæ•°
+int x[n + 1];               //å½“å‰è§£
+int best_x[n + 1];          //å½“å‰æœ€ä¼˜è§£
+float cost = 0;             //å½“å‰è´¹ç”¨
+float min_cost = FLT_MAX;   //å½“å‰æœ€ä¼˜å€¼
+float min_x[n + 1];         //ä»é¡¶ç‚¹iå‘å‡ºçš„è¾¹çš„æœ€å°è´¹ç”¨
 
-int count = 0;				//¼ÇÂ¼µİ¹é´ÎÊı
+int count = 0;              //è®°å½•é€’å½’æ¬¡æ•°
 
-//ÁÚ½Ó¾ØÕó
+//é‚»æ¥çŸ©é˜µ
 float a[n + 1][n + 1] = {
-	0, 0, 0, 0, 0, 0,
-	0, -1, 5, 61, 34, 12,
-	0, 57, -1, 43, 20, 7,
-	0, 39, 42, -1, 8, 21,
-	0, 6, 50, 42, -1, 8,
-	0, 41, 26, 10, 35, -1
+    0, 0, 0, 0, 0, 0,
+    0, -1, 5, 61, 34, 12,
+    0, 57, -1, 43, 20, 7,
+    0, 39, 42, -1, 8, 21,
+    0, 6, 50, 42, -1, 8,
+    0, 41, 26, 10, 35, -1
 };
 
-//Çó´Ó¸÷¶¥µã·¢³öµÄ±ßµÄ×îĞ¡·ÑÓÃ
+//æ±‚ä»å„é¡¶ç‚¹å‘å‡ºçš„è¾¹çš„æœ€å°è´¹ç”¨
 void x_min(void) {
-	for (int i = 1; i <= n; i++) {
-		min_x[i] = FLT_MAX;
-		for (int j = 1; j <= n; j++) {
-			if (j != i && a[i][j] < min_x[i])
-				min_x[i] = a[i][j];
-		}
-	}
+    for (int i = 1; i <= n; i++) {
+        min_x[i] = FLT_MAX;
+        for (int j = 1; j <= n; j++) {
+            if (j != i && a[i][j] < min_x[i])
+                min_x[i] = a[i][j];
+        }
+    }
 }
 
-//Ô¼Êøº¯Êı
+//çº¦æŸå‡½æ•°
 bool constraint(int t) {
-	return a[x[t - 1]][x[t]] > 0;
+    return a[x[t - 1]][x[t]] > 0;
 }
 
-//ÏŞ½çº¯Êı
+//é™ç•Œå‡½æ•°
 bool bound(int t) {
-	float sum_min = 0;
-	for (int i = t; i <= n; i++)
-		sum_min += min_x[x[i]];
-	return min_cost > (cost + a[x[t - 1]][x[t]] + sum_min);
+    float sum_min = 0;
+    for (int i = t; i <= n; i++)
+        sum_min += min_x[x[i]];
+    return min_cost > (cost + a[x[t - 1]][x[t]] + sum_min);
 }
 
 /*
-//½Ì²ÄÉÏµÄÏŞ½çº¯Êı
+//æ•™æä¸Šçš„é™ç•Œå‡½æ•°
 bool bound(int t) {
-	return min_cost > (cost + a[x[t - 1]][x[t]]);
+    return min_cost > (cost + a[x[t - 1]][x[t]]);
 }
 */
 
 void backtrack(int t) {
-	::count++;
-	if (t == n) {
-		if (a[x[n - 1]][x[n]] > 0 && a[x[n]][1] > 0 && min_cost > cost + a[x[n - 1]][x[n]] + a[x[n]][1]) {
-			for (int i = 1; i <= n; i++)
-				best_x[i] = x[i];
-			min_cost = cost + a[x[n - 1]][x[n]] + a[x[n]][1];
-		}
-	} else {
-		for (int i = t; i <= n; i++) {
-			//ÊÇ·ñ¿ÉÒÔ½øÈëx[t]×ÓÊ÷
-			if (constraint(t) && bound(t)) {
-				swap(x[t], x[i]);
-				cost += a[x[t - 1]][x[t]];
-				backtrack(t + 1);
-				cost -= a[x[t - 1]][x[t]];
-				swap(x[t], x[i]);
-			}
-		}
-	}
+    ::count++;
+    if (t == n) {
+        if (a[x[n - 1]][x[n]] > 0 && a[x[n]][1] > 0 && min_cost > cost + a[x[n - 1]][x[n]] + a[x[n]][1]) {
+            for (int i = 1; i <= n; i++)
+                best_x[i] = x[i];
+            min_cost = cost + a[x[n - 1]][x[n]] + a[x[n]][1];
+        }
+    } else {
+        for (int i = t; i <= n; i++) {
+            //æ˜¯å¦å¯ä»¥è¿›å…¥x[t]å­æ ‘
+            if (constraint(t) && bound(t)) {
+                swap(x[t], x[i]);
+                cost += a[x[t - 1]][x[t]];
+                backtrack(t + 1);
+                cost -= a[x[t - 1]][x[t]];
+                swap(x[t], x[i]);
+            }
+        }
+    }
 }
 
 float tsp(void) {
-	for (int i = 1; i <= n; i++)
-		x[i] = i;
-	x_min();
-	backtrack(2);
-	return min_cost;
+    for (int i = 1; i <= n; i++)
+        x[i] = i;
+    x_min();
+    backtrack(2);
+    return min_cost;
 }
 
-//²âÊÔ³ÌĞò
+//æµ‹è¯•ç¨‹åº
 int main(void) {
-	cout << "×îĞ¡·ÑÓÃ£º" << tsp() << endl;
-	cout << "Â·¾¶£º";
-	for (int i = 1; i <= n; i++)
-		cout << best_x[i] << "->";
-	cout << best_x[1] << endl;
-	cout << "µİ¹é´ÎÊı£º" << ::count << endl;
+    cout << "æœ€å°è´¹ç”¨ï¼š" << tsp() << endl;
+    cout << "è·¯å¾„ï¼š";
+    for (int i = 1; i <= n; i++)
+        cout << best_x[i] << "->";
+    cout << best_x[1] << endl;
+    cout << "é€’å½’æ¬¡æ•°ï¼š" << ::count << endl;
 
-	return 0;
+    return 0;
 }
