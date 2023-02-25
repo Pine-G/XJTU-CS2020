@@ -6,74 +6,74 @@
 
 using namespace std;
 
-// Ëã·¨ÒªÇó£ºÇë±àĞ´Ò»¶Î´úÂë£¬ÄÜ¹»ÔÚ×î»µÇé¿öÏÂÓÃ O(n)Ê±¼äÕÒ³ö n ¸öÔªËØµÄ´øÈ¨ÖĞÎ»Êı
+// ç®—æ³•è¦æ±‚ï¼šè¯·ç¼–å†™ä¸€æ®µä»£ç ï¼Œèƒ½å¤Ÿåœ¨æœ€åæƒ…å†µä¸‹ç”¨ O(n)æ—¶é—´æ‰¾å‡º n ä¸ªå…ƒç´ çš„å¸¦æƒä¸­ä½æ•°
 
-// º¯ÊıÔ­ĞÍ£º
+// å‡½æ•°åŸå‹ï¼š
 
 void WeightMedian(int length, vector<int> num, vector<double> weight, int index) {
-	if (length == 1) {
-		cout << num[index];
-		return;
-	}
+    if (length == 1) {
+        cout << num[index];
+        return;
+    }
 
-	//½«ÔªËØËæ»ú»®·Ö³ÉÁ½×é
-	int low = index, high = length + index - 1;
-	int temp = rand() % (length - 1) + index + 1;	//±ÜÃâËæ»úÑ¡ÔñµÄ½á¹ûÊÇÊ×ÔªËØ
-	swap(num[low], num[temp]);
-	swap(weight[low], weight[temp]);
-	int pivot = num[low];
-	double pivot_w = weight[low];
-	while (low < high) {
-		while (low < high && num[high] > pivot)
-			--high;
-		num[low] = num[high];
-		weight[low] = weight[high];
-		while (low < high && num[low] <= pivot)
-			++low;
-		num[high] = num[low];
-		weight[high] = weight[low];
-	}
-	num[low] = pivot;
-	weight[low] = pivot_w;
+    //å°†å…ƒç´ éšæœºåˆ’åˆ†æˆä¸¤ç»„
+    int low = index, high = length + index - 1;
+    int temp = rand() % (length - 1) + index + 1;   //é¿å…éšæœºé€‰æ‹©çš„ç»“æœæ˜¯é¦–å…ƒç´ 
+    swap(num[low], num[temp]);
+    swap(weight[low], weight[temp]);
+    int pivot = num[low];
+    double pivot_w = weight[low];
+    while (low < high) {
+        while (low < high && num[high] > pivot)
+            --high;
+        num[low] = num[high];
+        weight[low] = weight[high];
+        while (low < high && num[low] <= pivot)
+            ++low;
+        num[high] = num[low];
+        weight[high] = weight[low];
+    }
+    num[low] = pivot;
+    weight[low] = pivot_w;
 
-	//·Ö±ğ¼ÆËã×óÓÒÁ½×éµÄÈ¨ÖØºÍ
-	double left_weight = 0, right_weight = 0;
-	for (int i = index; i < low; i++)
-		left_weight += weight[i];
-	for (int i = low + 1; i < length + index; i++)
-		right_weight += weight[i];
+    //åˆ†åˆ«è®¡ç®—å·¦å³ä¸¤ç»„çš„æƒé‡å’Œ
+    double left_weight = 0, right_weight = 0;
+    for (int i = index; i < low; i++)
+        left_weight += weight[i];
+    for (int i = low + 1; i < length + index; i++)
+        right_weight += weight[i];
 
-	//µİ¹é
-	if (left_weight <= 0.5 && right_weight <= 0.5)
-		cout << num[low];
-	else if (left_weight > right_weight) {
-		weight[low] += right_weight;
-		WeightMedian(low - index + 1, num, weight, index);
-	} else {
-		weight[low] += left_weight;
-		WeightMedian(length - low + index, num, weight, low);
-	}
+    //é€’å½’
+    if (left_weight <= 0.5 && right_weight <= 0.5)
+        cout << num[low];
+    else if (left_weight > right_weight) {
+        weight[low] += right_weight;
+        WeightMedian(low - index + 1, num, weight, index);
+    } else {
+        weight[low] += left_weight;
+        WeightMedian(length - low + index, num, weight, low);
+    }
 }
 
-//ÄãµÄ´úÂëÖ»ĞèÒª²¹È«ÉÏ·½º¯ÊıÀ´ÊµÏÖËã·¨
+//ä½ çš„ä»£ç åªéœ€è¦è¡¥å…¨ä¸Šæ–¹å‡½æ•°æ¥å®ç°ç®—æ³•
 
-//ÆäÖĞlengthÎªÊäÈë³¤¶È£¬numÊÇ°üº¬n¸ö»¥²»ÏàÍ¬ÔªËØÖµµÄÏòÁ¿£¬weightÊÇ°üº¬ÔªËØÖµ¶ÔÓ¦µÄÈ¨ÖØµÄÏòÁ¿£¬indexÎªµİ¹éµ÷ÓÃÊ±µÄË÷Òı(ÏÂ±ê)
+//å…¶ä¸­lengthä¸ºè¾“å…¥é•¿åº¦ï¼Œnumæ˜¯åŒ…å«nä¸ªäº’ä¸ç›¸åŒå…ƒç´ å€¼çš„å‘é‡ï¼Œweightæ˜¯åŒ…å«å…ƒç´ å€¼å¯¹åº”çš„æƒé‡çš„å‘é‡ï¼Œindexä¸ºé€’å½’è°ƒç”¨æ—¶çš„ç´¢å¼•(ä¸‹æ ‡)
 
-//Ö»ĞèÒªÌá½»Õâ¼¸ĞĞ´úÂë£¬ÆäËûµÄ¶¼ÊÇºóÌ¨ÏµÍ³×Ô¶¯Íê³ÉµÄ¡£ÀàËÆÓÚ LeetCode
+//åªéœ€è¦æäº¤è¿™å‡ è¡Œä»£ç ï¼Œå…¶ä»–çš„éƒ½æ˜¯åå°ç³»ç»Ÿè‡ªåŠ¨å®Œæˆçš„ã€‚ç±»ä¼¼äº LeetCode
 
 int main() {
 
-	// ºóÌ¨×Ô¶¯¸ø³ö²âÊÔ´úÂë·ÅÔÚÕâÀï£¬ÎŞĞèÍ¬Ñ§±àĞ´
+    // åå°è‡ªåŠ¨ç»™å‡ºæµ‹è¯•ä»£ç æ”¾åœ¨è¿™é‡Œï¼Œæ— éœ€åŒå­¦ç¼–å†™
 
-	//²âÊÔ´úÂë½«²âÊÔÓÃÀıµÄÈıĞĞÊı¾İ·Ö±ğµ¼Èëlength£¬num£¬ºÍweightÖĞ
+    //æµ‹è¯•ä»£ç å°†æµ‹è¯•ç”¨ä¾‹çš„ä¸‰è¡Œæ•°æ®åˆ†åˆ«å¯¼å…¥lengthï¼Œnumï¼Œå’Œweightä¸­
 
-	//µ÷ÓÃWeightMedian(length,num, weight,index)º¯Êı£¬º¯ÊıÄÚ²¿Ê¹ÓÃcoutÊä³öµÃµ½µÄÖĞÎ»Êı£¬²âÊÔ´úÂëÄ¬ÈÏindex³õÊ¼ÖµÎª0
+    //è°ƒç”¨WeightMedian(length,num, weight,index)å‡½æ•°ï¼Œå‡½æ•°å†…éƒ¨ä½¿ç”¨coutè¾“å‡ºå¾—åˆ°çš„ä¸­ä½æ•°ï¼Œæµ‹è¯•ä»£ç é»˜è®¤indexåˆå§‹å€¼ä¸º0
 
-	vector<int> num = { 719, 449, 446, 981, 431, 993, 919, 389, 549, 453 };
-	vector<double> weight = { 0.01757775, 0.02028202, 0.16863048, 0.07320842, 0.16283562, 0.16167665, 0.14970060, 0.04095036, 0.12806645, 0.07707166 };
-	int n = num.size();
-	WeightMedian(n, num, weight, 0);
+    vector<int> num = { 719, 449, 446, 981, 431, 993, 919, 389, 549, 453 };
+    vector<double> weight = { 0.01757775, 0.02028202, 0.16863048, 0.07320842, 0.16283562, 0.16167665, 0.14970060, 0.04095036, 0.12806645, 0.07707166 };
+    int n = num.size();
+    WeightMedian(n, num, weight, 0);
 
-	return 0;
+    return 0;
 
 }
