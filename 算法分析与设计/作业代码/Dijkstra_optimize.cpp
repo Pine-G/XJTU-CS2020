@@ -2,68 +2,68 @@
 #include <queue>
 using namespace std;
 
-const int N = 101;	//È¨ÖµÉÏÏŞ
-const int n = 5;	//¶¥µã¸öÊı
+const int N = 101;  //æƒå€¼ä¸Šé™
+const int n = 5;    //é¡¶ç‚¹ä¸ªæ•°
 
-//ÁÚ½Ó¾ØÕó£¨-1±íÊ¾±ß²»´æÔÚ£©
+//é‚»æ¥çŸ©é˜µï¼ˆ-1è¡¨ç¤ºè¾¹ä¸å­˜åœ¨ï¼‰
 const int edge[n][n] = {
-	{0, 10, -1, 30, 100},
-	{-1, 0, 50, -1, -1},
-	{-1, -1, 0, -1, 10},
-	{-1, -1, 20, 0, 60},
-	{-1, -1, -1, -1, 0}
+    {0, 10, -1, 30, 100},
+    {-1, 0, 50, -1, -1},
+    {-1, -1, 0, -1, 10},
+    {-1, -1, 20, 0, 60},
+    {-1, -1, -1, -1, 0}
 };
 
 void dijkstra(const int &source) {
-	//´¦Àí´íÎóÊäÈë
-	if (source <= 0 || source > n) {
-		cout << "False input!" << endl;
-		return;
-	}
+    //å¤„ç†é”™è¯¯è¾“å…¥
+    if (source <= 0 || source > n) {
+        cout << "False input!" << endl;
+        return;
+    }
 
-	//³õÊ¼»¯¸¨ÖúÊı×é
-	int dist[n];
-	for (int i = 0; i < n; i++)
-		dist[i] = -1;
-	bool visited[n] = {false};
-	queue<int> bucket[N * n];
+    //åˆå§‹åŒ–è¾…åŠ©æ•°ç»„
+    int dist[n];
+    for (int i = 0; i < n; i++)
+        dist[i] = -1;
+    bool visited[n] = {false};
+    queue<int> bucket[N * n];
 
-	bucket[0].push(source - 1);
-	int count = 0;
-	//ÏßĞÔÉ¨Ãè¶ÓÁĞÊı×é
-	for (int i = 0; i < N * n; i++) {
-		while (!bucket[i].empty()) {
-			//³ö¶ÓÁĞ
-			int v = bucket[i].front();
-			bucket[i].pop();
-			if (visited[v])
-				continue;
-			//»ñÈ¡×î¶ÌÂ·¾¶
-			dist[v] = i;
-			visited[v] = true;
-			count++;
-			if (count == n)
-				break;
-			//½«Î´·ÃÎÊµÄÏàÁÚ¶¥µãÈë¶ÓÁĞ
-			for (int j = 0; j < n; j++) {
-				if (!visited[j] && edge[v][j] > 0)
-					bucket[i + edge[v][j]].push(j);
-			}
-		}
-		if (count == n)
-			break;
-	}
+    bucket[0].push(source - 1);
+    int count = 0;
+    //çº¿æ€§æ‰«æé˜Ÿåˆ—æ•°ç»„
+    for (int i = 0; i < N * n; i++) {
+        while (!bucket[i].empty()) {
+            //å‡ºé˜Ÿåˆ—
+            int v = bucket[i].front();
+            bucket[i].pop();
+            if (visited[v])
+                continue;
+            //è·å–æœ€çŸ­è·¯å¾„
+            dist[v] = i;
+            visited[v] = true;
+            count++;
+            if (count == n)
+                break;
+            //å°†æœªè®¿é—®çš„ç›¸é‚»é¡¶ç‚¹å…¥é˜Ÿåˆ—
+            for (int j = 0; j < n; j++) {
+                if (!visited[j] && edge[v][j] > 0)
+                    bucket[i + edge[v][j]].push(j);
+            }
+        }
+        if (count == n)
+            break;
+    }
 
-	//Êä³ö
-	for (int i = 0; i < n; i++)
-		cout << "dist[" << i + 1 << "]:" << dist[i] << endl;
+    //è¾“å‡º
+    for (int i = 0; i < n; i++)
+        cout << "dist[" << i + 1 << "]:" << dist[i] << endl;
 }
 
-//²âÊÔ³ÌĞò
+//æµ‹è¯•ç¨‹åº
 int main(void) {
-	cout << "source point(from 1-" << n << "):";
-	int s;
-	cin >> s;
-	dijkstra(s);
-	return 0;
+    cout << "source point(from 1-" << n << "):";
+    int s;
+    cin >> s;
+    dijkstra(s);
+    return 0;
 }
