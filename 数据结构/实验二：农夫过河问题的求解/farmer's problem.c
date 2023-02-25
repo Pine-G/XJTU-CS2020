@@ -7,11 +7,11 @@
 #include <windows.h>
 #define SIZE 16
 
-int visited[SIZE];		        //标志位（用于标志结点是否被访问过）
-int stack[SIZE];		        //栈
-int top = 0;			        //栈顶指针
-int number = 0;			        //方案数目
-int interface_bottom = 0;		//使程序退出时返回信息在界面底端
+int visited[SIZE];		      //标志位（用于标志结点是否被访问过）
+int stack[SIZE];		      //栈
+int top = 0;			      //栈顶指针
+int number = 0;			      //方案数目
+int interface_bottom = 0;     //使程序退出时返回信息在界面底端
 
 char *situation[SIZE] = {"农夫 狼 菜 羊", "农夫 狼 菜", "农夫 狼    羊", "农夫 狼",
                          "农夫    菜 羊", "农夫    菜", "农夫       羊", "农夫",
