@@ -4,69 +4,69 @@
 #include <algorithm>
 using namespace std;
 
-//¸÷¸ö×÷ÒµËùĞèÊ±¼ä
+//å„ä¸ªä½œä¸šæ‰€éœ€æ—¶é—´
 vector<float> a = {2, 14, 4, 16, 6, 5, 3};
 
 struct work {
-	int id;			//×÷Òµ±àºÅ
-	float time;		//ËùĞè´¦ÀíÊ±¼ä
-	work(int a, float b): id(a), time(b) {}
-	bool operator <(const work &x)const {
-		return x.time < time;
-	}
+    int id;         //ä½œä¸šç¼–å·
+    float time;     //æ‰€éœ€å¤„ç†æ—¶é—´
+    work(int a, float b): id(a), time(b) {}
+    bool operator <(const work &x)const {
+        return x.time < time;
+    }
 };
 
 struct machine {
-	int id;			//»úÆ÷±àºÅ
-	float avail;	//Íê³Éµ±Ç°×÷ÒµËùĞèÊ±¼ä
-	machine(int a, float b): id(a), avail(b) {}
-	bool operator <(const machine &x)const {
-		return x.avail < avail;
-	}
+    int id;         //æœºå™¨ç¼–å·
+    float avail;    //å®Œæˆå½“å‰ä½œä¸šæ‰€éœ€æ—¶é—´
+    machine(int a, float b): id(a), avail(b) {}
+    bool operator <(const machine &x)const {
+        return x.avail < avail;
+    }
 };
 
-//Ì°ĞÄËã·¨
+//è´ªå¿ƒç®—æ³•
 float LPT(int m) {
-	int n = a.size();
-	if (n <= m) {
-		cout << "ÎªÃ¿¸ö×÷Òµ·ÖÅäÒ»Ì¨»úÆ÷" << endl;
-		float total_time = a[0];
-		for (int i = 1; i < n; i++)
-			total_time = (a[i] > total_time) ? a[i] : total_time;
-		return total_time;
-	}
+    int n = a.size();
+    if (n <= m) {
+        cout << "ä¸ºæ¯ä¸ªä½œä¸šåˆ†é…ä¸€å°æœºå™¨" << endl;
+        float total_time = a[0];
+        for (int i = 1; i < n; i++)
+            total_time = (a[i] > total_time) ? a[i] : total_time;
+        return total_time;
+    }
 
-	//³õÊ¼»¯×÷Òµ
-	vector<work> job;
-	for (int i = 0; i < n; i++)
-		job.push_back(work(i + 1, a[i]));
-	//°´×÷Òµ´¦ÀíÊ±¼ä½µĞòÅÅĞò
-	sort(job.begin(), job.end());
+    //åˆå§‹åŒ–ä½œä¸š
+    vector<work> job;
+    for (int i = 0; i < n; i++)
+        job.push_back(work(i + 1, a[i]));
+    //æŒ‰ä½œä¸šå¤„ç†æ—¶é—´é™åºæ’åº
+    sort(job.begin(), job.end());
 
-	//³õÊ¼»¯»úÆ÷£¬½¨Á¢Ğ¡¶¥¶Ñ
-	priority_queue<machine> MinHeap;
-	for (int i = 0; i < m; i++)
-		MinHeap.push(machine(i + 1, 0));
+    //åˆå§‹åŒ–æœºå™¨ï¼Œå»ºç«‹å°é¡¶å †
+    priority_queue<machine> MinHeap;
+    for (int i = 0; i < m; i++)
+        MinHeap.push(machine(i + 1, 0));
 
-	//È¡¶Ñ¶¥»úÆ÷£¬·ÖÅä¹¤×÷
-	for (int i = 0; i < n; i++) {
-		machine x = MinHeap.top();
-		MinHeap.pop();
-		cout << "½«»úÆ÷" << x.id << "´Ó" << x.avail << "µ½" << x.avail + job[i].time
-		     << "µÄÊ±¼ä¶Î·ÖÅä¸ø¹¤×÷" << job[i].id << endl;
-		x.avail += job[i].time;
-		MinHeap.push(x);
-	}
+    //å–å †é¡¶æœºå™¨ï¼Œåˆ†é…å·¥ä½œ
+    for (int i = 0; i < n; i++) {
+        machine x = MinHeap.top();
+        MinHeap.pop();
+        cout << "å°†æœºå™¨" << x.id << "ä»" << x.avail << "åˆ°" << x.avail + job[i].time
+             << "çš„æ—¶é—´æ®µåˆ†é…ç»™å·¥ä½œ" << job[i].id << endl;
+        x.avail += job[i].time;
+        MinHeap.push(x);
+    }
 
-	//È¡×î³¤¹¤×÷Ê±¼ä
-	for (int i = 0; i < m - 1; i++)
-		MinHeap.pop();
-	return MinHeap.top().avail;
+    //å–æœ€é•¿å·¥ä½œæ—¶é—´
+    for (int i = 0; i < m - 1; i++)
+        MinHeap.pop();
+    return MinHeap.top().avail;
 }
 
 int main(void) {
-	int t = LPT(3);
-	cout << "×î¶ÌÊ±¼ä£º" << t << endl;
+    int t = LPT(3);
+    cout << "æœ€çŸ­æ—¶é—´ï¼š" << t << endl;
 
-	return 0;
+    return 0;
 }
