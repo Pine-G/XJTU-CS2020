@@ -10,71 +10,71 @@ vector<int> volume = { 800, 400, 200, 200, 300 };
 vector<int> value = { 8, 10, 4, 5, 5 };
 
 void knapsack_2d(const int &c, const int &d) {
-	const int n = value.size();
-	//·ÖÅäÄÚ´æ¿Õ¼ä£¬´æ´¢m(i,j,k)
-	int ***m = new int **[n + 1];
-	for (int i = 0; i <= n; i++) {
-		m[i] = new int *[c + 1];
-		for (int j = 0; j <= c; j++)
-			m[i][j] = new int[d + 1];
-	}
-	//·ÖÅäÄÚ´æ¿Õ¼ä£¬´æ´¢0-1ÏòÁ¿
-	int *x = new int[n + 1];
+    const int n = value.size();
+    //åˆ†é…å†…å­˜ç©ºé—´ï¼Œå­˜å‚¨m(i,j,k)
+    int ***m = new int **[n + 1];
+    for (int i = 0; i <= n; i++) {
+        m[i] = new int *[c + 1];
+        for (int j = 0; j <= c; j++)
+            m[i][j] = new int[d + 1];
+    }
+    //åˆ†é…å†…å­˜ç©ºé—´ï¼Œå­˜å‚¨0-1å‘é‡
+    int *x = new int[n + 1];
 
-	//³õÊ¼»¯m(n,j,k)
-	for (int j = 0; j <= c; j++) {
-		for (int k = 0; k <= d; k++) {
-			m[n][j][k] = 0;
-			if (j >= weight[n - 1] && k >= volume[n - 1])
-				m[n][j][k] = value[n - 1];
-		}
-	}
+    //åˆå§‹åŒ–m(n,j,k)
+    for (int j = 0; j <= c; j++) {
+        for (int k = 0; k <= d; k++) {
+            m[n][j][k] = 0;
+            if (j >= weight[n - 1] && k >= volume[n - 1])
+                m[n][j][k] = value[n - 1];
+        }
+    }
 
-	//Çó½â×ÓÎÊÌâ
-	for (int i = n - 1; i > 0; i--) {
-		for (int j = 0; j <= c; j++) {
-			for (int k = 0; k <= d; k++) {
-				m[i][j][k] = m[i + 1][j][k];
-				if (j >= weight[i - 1] && k >= volume[i - 1])
-					m[i][j][k] = max(m[i + 1][j][k], m[i + 1][j - weight[i - 1]][k - volume[i - 1]] + value[i - 1]);
-			}
-		}
-	}
+    //æ±‚è§£å­é—®é¢˜
+    for (int i = n - 1; i > 0; i--) {
+        for (int j = 0; j <= c; j++) {
+            for (int k = 0; k <= d; k++) {
+                m[i][j][k] = m[i + 1][j][k];
+                if (j >= weight[i - 1] && k >= volume[i - 1])
+                    m[i][j][k] = max(m[i + 1][j][k], m[i + 1][j - weight[i - 1]][k - volume[i - 1]] + value[i - 1]);
+            }
+        }
+    }
 
-	//¹¹Ôì×îÓÅ½â
-	int temp1 = c, temp2 = d;
-	for (int i = 1; i < n; i++) {
-		if (m[i][temp1][temp2] == m[i + 1][temp1][temp2])
-			x[i] = 0;
-		else {
-			x[i] = 1;
-			temp1 -= weight[i - 1];
-			temp2 -= volume[i - 1];
-		}
-	}
-	x[n] = (m[n][c][d] > 0) ? 1 : 0;
+    //æ„é€ æœ€ä¼˜è§£
+    int temp1 = c, temp2 = d;
+    for (int i = 1; i < n; i++) {
+        if (m[i][temp1][temp2] == m[i + 1][temp1][temp2])
+            x[i] = 0;
+        else {
+            x[i] = 1;
+            temp1 -= weight[i - 1];
+            temp2 -= volume[i - 1];
+        }
+    }
+    x[n] = (m[n][c][d] > 0) ? 1 : 0;
 
-	//Êä³ö
-	cout << "×î´ó¼ÛÖµ£º" << m[1][c][d] << endl;
-	cout << "0-1ÏòÁ¿£º";
-	for (int i = 1; i <= n; i++)
-		cout << x[i] << ' ';
+    //è¾“å‡º
+    cout << "æœ€å¤§ä»·å€¼ï¼š" << m[1][c][d] << endl;
+    cout << "0-1å‘é‡ï¼š";
+    for (int i = 1; i <= n; i++)
+        cout << x[i] << ' ';
 
-	//ÊÍ·ÅÄÚ´æ¿Õ¼ä
-	for (int i = 0; i <= n; i++) {
-		for (int j = 0; j <= c; j++)
-			delete[] m[i][j];
-		delete[] m[i];
-	}
-	delete[] m;
-	delete[] x;
+    //é‡Šæ”¾å†…å­˜ç©ºé—´
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= c; j++)
+            delete[] m[i][j];
+        delete[] m[i];
+    }
+    delete[] m;
+    delete[] x;
 }
 
-//²âÊÔ³ÌĞò
+//æµ‹è¯•ç¨‹åº
 int main(void) {
-	int c = 1000;
-	int d = 1000;
-	knapsack_2d(c, d);
+    int c = 1000;
+    int d = 1000;
+    knapsack_2d(c, d);
 
-	return 0;
+    return 0;
 }
