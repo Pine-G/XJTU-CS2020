@@ -15,95 +15,95 @@ vector<string> article = {"Sun", "stressed", "that", "every", "resident", "in", 
                          };
 
 void beauty_print(int *L, int M, int n) {
-	//extra[i][j]±íÊ¾½«µÚi~j¸öµ¥´Ê´òÓ¡µ½Í¬Ò»ĞĞÊ±Ê£ÓàµÄ¿Õ¸ñÊı
-	int **extra = new int *[n + 1];
-	for (int i = 0; i < n + 1; i++)
-		extra[i] = new int[n + 1];
-	//lc[i][j]±íÊ¾½«µÚi~j¸öµ¥´Ê´òÓ¡µ½Í¬Ò»ĞĞÊ±»¨·ÑµÄ´ú¼Û
-	unsigned long **lc = new unsigned long *[n + 1];
-	for (int i = 0; i < n + 1; i++)
-		lc[i] = new unsigned long[n + 1];
-	//c[j]±íÊ¾½«µÚ1~j¸öµ¥´ÊÆ¯ÁÁ´òÓ¡µÄ×îĞ¡´ú¼Û
-	unsigned long *c = new unsigned long[n + 1];
-	//s[j]±íÊ¾½«µÚ1~j¸öµ¥´ÊÆ¯ÁÁ´òÓ¡Ê±×îºóÒ»ĞĞµÄ¿ªÍ·µ¥´Ê
-	int *s = new int[n + 1];
+    //extra[i][j]è¡¨ç¤ºå°†ç¬¬i~jä¸ªå•è¯æ‰“å°åˆ°åŒä¸€è¡Œæ—¶å‰©ä½™çš„ç©ºæ ¼æ•°
+    int **extra = new int *[n + 1];
+    for (int i = 0; i < n + 1; i++)
+        extra[i] = new int[n + 1];
+    //lc[i][j]è¡¨ç¤ºå°†ç¬¬i~jä¸ªå•è¯æ‰“å°åˆ°åŒä¸€è¡Œæ—¶èŠ±è´¹çš„ä»£ä»·
+    unsigned long **lc = new unsigned long *[n + 1];
+    for (int i = 0; i < n + 1; i++)
+        lc[i] = new unsigned long[n + 1];
+    //c[j]è¡¨ç¤ºå°†ç¬¬1~jä¸ªå•è¯æ¼‚äº®æ‰“å°çš„æœ€å°ä»£ä»·
+    unsigned long *c = new unsigned long[n + 1];
+    //s[j]è¡¨ç¤ºå°†ç¬¬1~jä¸ªå•è¯æ¼‚äº®æ‰“å°æ—¶æœ€åä¸€è¡Œçš„å¼€å¤´å•è¯
+    int *s = new int[n + 1];
 
-	//³õÊ¼»¯extra
-	for (int i = 1; i <= n; i++) {
-		for (int j = i; j <= n; j++) {
-			int sum = 0;
-			for (int k = i; k <= j; k++)
-				sum += L[k];
-			extra[i][j] = M - j + i - sum;
-		}
-	}
+    //åˆå§‹åŒ–extra
+    for (int i = 1; i <= n; i++) {
+        for (int j = i; j <= n; j++) {
+            int sum = 0;
+            for (int k = i; k <= j; k++)
+                sum += L[k];
+            extra[i][j] = M - j + i - sum;
+        }
+    }
 
-	//³õÊ¼»¯lc
-	for (int i = 1; i <= n; i++) {
-		for (int j = i; j <= n; j++) {
-			if (extra[i][j] < 0)
-				lc[i][j] = INT_MAX;
-			else if (j == n)
-				lc[i][j] = 0;
-			else
-				lc[i][j] = (unsigned long)pow(extra[i][j], 3);
-		}
-	}
+    //åˆå§‹åŒ–lc
+    for (int i = 1; i <= n; i++) {
+        for (int j = i; j <= n; j++) {
+            if (extra[i][j] < 0)
+                lc[i][j] = INT_MAX;
+            else if (j == n)
+                lc[i][j] = 0;
+            else
+                lc[i][j] = (unsigned long)pow(extra[i][j], 3);
+        }
+    }
 
-	//Çó½â×ÓÎÊÌâ
-	c[0] = 0;
-	for (int j = 1; j <= n; j++) {
-		c[j] = lc[1][j];
-		for (int i = 2; i <= j; i++) {
-			unsigned long t = c[i - 1] + lc[i][j];
-			if (t < c[j]) {
-				c[j] = t;
-				s[j] = i;
-			}
-		}
-	}
+    //æ±‚è§£å­é—®é¢˜
+    c[0] = 0;
+    for (int j = 1; j <= n; j++) {
+        c[j] = lc[1][j];
+        for (int i = 2; i <= j; i++) {
+            unsigned long t = c[i - 1] + lc[i][j];
+            if (t < c[j]) {
+                c[j] = t;
+                s[j] = i;
+            }
+        }
+    }
 
-	//¹¹Ôì×îÓÅ½â
-	cout << "Æ¯ÁÁ´òÓ¡µÄ×îĞ¡´ú¼Û£º" << c[n] << endl;
-	for (int i = 0; i < M; i++)
-		cout << ' ';
-	cout << 'M' << endl;
-	vector<int> cut;
-	int k = s[n];
-	while (k > 0) {
-		cut.push_back(k);
-		k = s[k - 1];
-	}
-	reverse(cut.begin(), cut.end());
-	int count = 0;
-	for (int i = 0; i < article.size(); i++) {
-		cout << article[i] << ' ';
-		if (i == cut[count] - 2) {
-			cout << endl;
-			count++;
-		}
-	}
+    //æ„é€ æœ€ä¼˜è§£
+    cout << "æ¼‚äº®æ‰“å°çš„æœ€å°ä»£ä»·ï¼š" << c[n] << endl;
+    for (int i = 0; i < M; i++)
+        cout << ' ';
+    cout << 'M' << endl;
+    vector<int> cut;
+    int k = s[n];
+    while (k > 0) {
+        cut.push_back(k);
+        k = s[k - 1];
+    }
+    reverse(cut.begin(), cut.end());
+    int count = 0;
+    for (int i = 0; i < article.size(); i++) {
+        cout << article[i] << ' ';
+        if (i == cut[count] - 2) {
+            cout << endl;
+            count++;
+        }
+    }
 
-	//ÊÍ·ÅÄÚ´æ¿Õ¼ä
-	for (int i = 0; i < n + 1; i++)
-		delete[] extra[i];
-	delete[] extra;
-	for (int i = 0; i < n + 1; i++)
-		delete[] lc[i];
-	delete[] lc;
-	delete[] c;
-	delete[] s;
+    //é‡Šæ”¾å†…å­˜ç©ºé—´
+    for (int i = 0; i < n + 1; i++)
+        delete[] extra[i];
+    delete[] extra;
+    for (int i = 0; i < n + 1; i++)
+        delete[] lc[i];
+    delete[] lc;
+    delete[] c;
+    delete[] s;
 }
 
-//²âÊÔ³ÌĞò
+//æµ‹è¯•ç¨‹åº
 int main(void) {
-	int M = 50;
-	int n = article.size();
-	int *L = new int[n + 1];
-	for (int i = 1; i <= n; i++)
-		L[i] = article[i - 1].size();
-	beauty_print(L, M, n);
-	delete[] L;
+    int M = 50;
+    int n = article.size();
+    int *L = new int[n + 1];
+    for (int i = 1; i <= n; i++)
+        L[i] = article[i - 1].size();
+    beauty_print(L, M, n);
+    delete[] L;
 
-	return 0;
+    return 0;
 }
