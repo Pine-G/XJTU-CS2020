@@ -1,0 +1,4 @@
+# 将分卷文件合并成一个单独的文件
+zip -s 0 Scotty3D.zip --out single.zip
+# 解压文件
+unzip single.zip
