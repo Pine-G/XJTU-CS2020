@@ -41,7 +41,7 @@ static Vec3 refract(Vec3 out_dir, float index_of_refraction, bool& was_internal)
     float cos2_theta_i = 1 - sin2_theta_i;
 
     if(cos2_theta_i < 0) {
-        //È«·´Éä
+        //å…¨åå°„
         was_internal = true;
         return Vec3{};
     }
