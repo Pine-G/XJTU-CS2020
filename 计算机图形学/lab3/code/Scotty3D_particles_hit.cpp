@@ -2,47 +2,47 @@
 
 Trace Triangle::hit(const Ray &ray) const {
 
-	// Each vertex contains a postion and surface normal
-	Tri_Mesh_Vert v_0 = vertex_list[v0];
-	Tri_Mesh_Vert v_1 = vertex_list[v1];
-	Tri_Mesh_Vert v_2 = vertex_list[v2];
+    // Each vertex contains a postion and surface normal
+    Tri_Mesh_Vert v_0 = vertex_list[v0];
+    Tri_Mesh_Vert v_1 = vertex_list[v1];
+    Tri_Mesh_Vert v_2 = vertex_list[v2];
 
-	// TODO (PathTracer): Task 2
-	// Intersect the ray with the triangle defined by the three vertices.
+    // TODO (PathTracer): Task 2
+    // Intersect the ray with the triangle defined by the three vertices.
 
-	Vec3 e1 = v_1.position - v_0.position;
-	Vec3 e2 = v_2.position - v_0.position;
-	Vec3 s = ray.point - v_0.position;
+    Vec3 e1 = v_1.position - v_0.position;
+    Vec3 e2 = v_2.position - v_0.position;
+    Vec3 s = ray.point - v_0.position;
 
-	Trace ret;
-	ret.origin = ray.point;
-	ret.hit = false;
-	ret.distance = 0.0f;
-	ret.position = Vec3{};
-	ret.normal = Vec3{};
+    Trace ret;
+    ret.origin = ray.point;
+    ret.hit = false;
+    ret.distance = 0.0f;
+    ret.position = Vec3{};
+    ret.normal = Vec3{};
 
-	float denominator = dot(cross(e1, ray.dir), e2);
-	//Ð¡ÇòÔË¶¯·½ÏòÆ½ÐÐÓÚÈý½ÇÐÎÃæÆ¬£¬²»¿ÉÄÜ·¢ÉúÅö×²
-	if (denominator == 0) {
-		return ret;
-	}
+    float denominator = dot(cross(e1, ray.dir), e2);
+    //å°çƒè¿åŠ¨æ–¹å‘å¹³è¡ŒäºŽä¸‰è§’å½¢é¢ç‰‡ï¼Œä¸å¯èƒ½å‘ç”Ÿç¢°æ’ž
+    if (denominator == 0) {
+        return ret;
+    }
 
-	//Çó½âÈýÎ¬ÏòÁ¿·½³Ì£º-s + u*e1 + v*e2 = t*ray.dir£¨¾ùÎªµã³Ë£©
-	float u = -1 * dot(cross(s, e2), ray.dir) / denominator;
-	float v = dot(cross(e1, ray.dir), s) / denominator;
-	float t = -1 * dot(cross(s, e2), e1) / denominator;
+    //æ±‚è§£ä¸‰ç»´å‘é‡æ–¹ç¨‹ï¼š-s + u*e1 + v*e2 = t*ray.dirï¼ˆå‡ä¸ºç‚¹ä¹˜ï¼‰
+    float u = -1 * dot(cross(s, e2), ray.dir) / denominator;
+    float v = dot(cross(e1, ray.dir), s) / denominator;
+    float t = -1 * dot(cross(s, e2), e1) / denominator;
 
-	if (u >= 0 && u <= 1 && v >= 0 && v <= 1 && u + v <= 1) {
-		if (t >= ray.dist_bounds.x && t <= ray.dist_bounds.y) {
-			//·¢ÉúÅö×²
-			ret.hit = true;
-			ret.distance = t;
-			ret.position = (1 - u - v) * v_0.position + u * v_1.position + v * v_2.position;
-			ret.normal = ((1 - u - v) * v_0.normal + u * v_1.normal + v * v_2.normal).unit();
-		}
-	}
+    if (u >= 0 && u <= 1 && v >= 0 && v <= 1 && u + v <= 1) {
+        if (t >= ray.dist_bounds.x && t <= ray.dist_bounds.y) {
+            //å‘ç”Ÿç¢°æ’ž
+            ret.hit = true;
+            ret.distance = t;
+            ret.position = (1 - u - v) * v_0.position + u * v_1.position + v * v_2.position;
+            ret.normal = ((1 - u - v) * v_0.normal + u * v_1.normal + v * v_2.normal).unit();
+        }
+    }
 
-	return ret;
+    return ret;
 }
 
 
@@ -50,26 +50,26 @@ Trace Triangle::hit(const Ray &ray) const {
 
 bool Scene_Particles::Particle::update(const PT::Object &scene, float dt, float radius) {
 
-	// TODO(Animation): Task 4
+    // TODO(Animation): Task 4
 
-	// Compute the trajectory of this particle for the next dt seconds.
-	float tLeft = dt;
-	float eps = 1e-3;
-	// (1) Build a ray representing the particle's path if it travelled at constant velocity.
-	while (tLeft - eps > 0) {
-		Ray path(pos, velocity);
-		// (2) Intersect the ray with the scene and account for collisions. Be careful when placing
-		// collision points using the particle radius. Move the particle to its next position.
-		auto intersection = scene.hit(path);
-		if (intersection.hit && intersection.distance <= radius)
-			velocity = velocity - 2 * dot(velocity, intersection.normal) * intersection.normal;
-		// (3) Account for acceleration due to gravity.
-		velocity += eps * acceleration;
-		pos += eps * velocity;
-		// (4) Repeat until the entire time step has been consumed.
-		tLeft -= eps;
-	}
-	// (5) Decrease the particle's age and return whether it should die.
-	age -= dt;
-	return age > 0;
+    // Compute the trajectory of this particle for the next dt seconds.
+    float tLeft = dt;
+    float eps = 1e-3;
+    // (1) Build a ray representing the particle's path if it travelled at constant velocity.
+    while (tLeft - eps > 0) {
+        Ray path(pos, velocity);
+        // (2) Intersect the ray with the scene and account for collisions. Be careful when placing
+        // collision points using the particle radius. Move the particle to its next position.
+        auto intersection = scene.hit(path);
+        if (intersection.hit && intersection.distance <= radius)
+            velocity = velocity - 2 * dot(velocity, intersection.normal) * intersection.normal;
+        // (3) Account for acceleration due to gravity.
+        velocity += eps * acceleration;
+        pos += eps * velocity;
+        // (4) Repeat until the entire time step has been consumed.
+        tLeft -= eps;
+    }
+    // (5) Decrease the particle's age and return whether it should die.
+    age -= dt;
+    return age > 0;
 }
