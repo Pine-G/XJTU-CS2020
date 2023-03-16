@@ -8,49 +8,49 @@
 pid_t pid1, pid2;
 
 void parent() {
-	kill(pid1, 16);
-	kill(pid2, 17);
+    kill(pid1, 16);
+    kill(pid2, 17);
 }
 
 void child1() {
-	printf("Child process 1 is killed by parent !!\n");
-	exit(0);
+    printf("Child process 1 is killed by parent !!\n");
+    exit(0);
 }
 
 void child2() {
-	printf("Child process 2 is killed by parent !!\n");
-	exit(0);
+    printf("Child process 2 is killed by parent !!\n");
+    exit(0);
 }
 
 int main() {
 
-	while ((pid1 = fork()) == -1);
+    while ((pid1 = fork()) == -1);
 
-	if (pid1 > 0) {
-		while ((pid2 = fork()) == -1);
+    if (pid1 > 0) {
+        while ((pid2 = fork()) == -1);
 
-		if (pid2 > 0) {
-			//╦╦╫ЬЁл
-			signal(SIGQUIT, parent);
-			signal(SIGALRM, parent);
-			alarm(5);
-			//signal(SIGINT, parent);
-			wait(NULL);
-			wait(NULL);
-			printf("Parent process is killed !!\n");
-			exit(0);
-		} else {
-			//вс╫ЬЁл2
-			signal(17, child2);
-			signal(SIGQUIT, SIG_IGN);
-			//signal(SIGINT, SIG_IGN);
-			pause();
-		}
-	} else {
-		//вс╫ЬЁл1
-		signal(16, child1);
-		signal(SIGQUIT, SIG_IGN);
-		//signal(SIGINT, SIG_IGN);
-		pause();
-	}
+        if (pid2 > 0) {
+            //Г┬╤Х©⌡Г╗▀
+            signal(SIGQUIT, parent);
+            signal(SIGALRM, parent);
+            alarm(5);
+            //signal(SIGINT, parent);
+            wait(NULL);
+            wait(NULL);
+            printf("Parent process is killed !!\n");
+            exit(0);
+        } else {
+            //Е╜░Х©⌡Г╗▀2
+            signal(17, child2);
+            signal(SIGQUIT, SIG_IGN);
+            //signal(SIGINT, SIG_IGN);
+            pause();
+        }
+    } else {
+        //Е╜░Х©⌡Г╗▀1
+        signal(16, child1);
+        signal(SIGQUIT, SIG_IGN);
+        //signal(SIGINT, SIG_IGN);
+        pause();
+    }
 }
