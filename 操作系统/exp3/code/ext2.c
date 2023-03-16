@@ -1,1107 +1,1108 @@
-//ÀàEXT2ÎÄ¼şÏµÍ³£ºÂß¼­¿éÓëÎïÀí¿é´óĞ¡¾ùÎª512B£¬¼ÙÉèÖ»ÓĞÒ»¸öÓÃ»§£¬Ö»¶¨ÒåÒ»¸ö×é£¬Ê¡ÂÔ³¬¼¶¿é
+//ç±»EXT2æ–‡ä»¶ç³»ç»Ÿï¼šé€»è¾‘å—ä¸ç‰©ç†å—å¤§å°å‡ä¸º512Bï¼Œå‡è®¾åªæœ‰ä¸€ä¸ªç”¨æˆ·ï¼Œåªå®šä¹‰ä¸€ä¸ªç»„ï¼Œçœç•¥è¶…çº§å—
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <signal.h>
 
-#define VOLUME_NAME "EXT2FS"				//¾íÃû
-#define EXT2_NAME_LEN 255					//ÎÄ¼şÃû×î´ó³¤¶È
-#define FOPEN_TABLE_MAX 16					//ÎÄ¼ş´ò¿ª±í×î´ó´óĞ¡
-#define BLOCK_SIZE 512						//Êı¾İ¿é´óĞ¡
-#define DATA_BLOCK_COUNT 4096				//Êı¾İ¿é¸öÊı
-#define INODE_COUNT 4096					//inode¸öÊı
-#define DISK_SIZE 4611						//´ÅÅÌ¿é¸öÊı
-#define READ_DISK 1							//¶Á´ÅÅÌ
-#define WRITE_DISK 0						//Ğ´´ÅÅÌ
-#define GDT_START 0							//×éÃèÊö·ûÆğÊ¼Æ«ÒÆ
-#define BLOCK_BITMAP_START 512				//Êı¾İ¿éÎ»Í¼ÆğÊ¼Æ«ÒÆ
-#define INODE_BITMAP_START 1024				//inodeÎ»Í¼ÆğÊ¼Æ«ÒÆ
-#define INODE_TABLE_START 1536				//inode±íÆğÊ¼Æ«ÒÆ
-#define DATA_BLOCK_START (1536+512*512)		//Êı¾İ¿éÆğÊ¼Æ«ÒÆ
+#define VOLUME_NAME "EXT2FS"                //å·å
+#define EXT2_NAME_LEN 255                   //æ–‡ä»¶åæœ€å¤§é•¿åº¦
+#define FOPEN_TABLE_MAX 16                  //æ–‡ä»¶æ‰“å¼€è¡¨æœ€å¤§å¤§å°
+#define BLOCK_SIZE 512                      //æ•°æ®å—å¤§å°
+#define DATA_BLOCK_COUNT 4096               //æ•°æ®å—ä¸ªæ•°
+#define INODE_COUNT 4096                    //inodeä¸ªæ•°
+#define DISK_SIZE 4611                      //ç£ç›˜å—ä¸ªæ•°
+#define READ_DISK 1                         //è¯»ç£ç›˜
+#define WRITE_DISK 0                        //å†™ç£ç›˜
+#define GDT_START 0                         //ç»„æè¿°ç¬¦èµ·å§‹åç§»
+#define BLOCK_BITMAP_START 512              //æ•°æ®å—ä½å›¾èµ·å§‹åç§»
+#define INODE_BITMAP_START 1024             //inodeä½å›¾èµ·å§‹åç§»
+#define INODE_TABLE_START 1536              //inodeè¡¨èµ·å§‹åç§»
+#define DATA_BLOCK_START (1536+512*512)     //æ•°æ®å—èµ·å§‹åç§»
 
-//ÎÄ¼şÀàĞÍ
+//æ–‡ä»¶ç±»å‹
 enum {
-	FT_UNKNOWN,								//Î´Öª
-	FT_REG_FILE,							//ÆÕÍ¨ÎÄ¼ş
-	FT_DIR,									//Ä¿Â¼
-	FT_CHRDEV,								//×Ö·ûÉè±¸
-	FT_BLKDEV,								//¿éÉè±¸
-	FT_FIFO,								//¹ÜµÀ
-	FT_SOCK,								//Ì×½Ó×Ö
-	FT_SYMLINK,								//·ûºÅÖ¸Õë
+    FT_UNKNOWN,                             //æœªçŸ¥
+    FT_REG_FILE,                            //æ™®é€šæ–‡ä»¶
+    FT_DIR,                                 //ç›®å½•
+    FT_CHRDEV,                              //å­—ç¬¦è®¾å¤‡
+    FT_BLKDEV,                              //å—è®¾å¤‡
+    FT_FIFO,                                //ç®¡é“
+    FT_SOCK,                                //å¥—æ¥å­—
+    FT_SYMLINK,                             //ç¬¦å·æŒ‡é’ˆ
 };
 
-//×éÃèÊö·û(32B)
+//ç»„æè¿°ç¬¦(32B)
 typedef struct group_desc {
-	char bg_volume_name[10];				//¾íÃû
-	unsigned short bg_block_bitmap;			//±£´æÊı¾İ¿éÎ»Í¼µÄ¿éºÅ
-	unsigned short bg_inode_bitmap;			//±£´æinodeÎ»Í¼µÄ¿éºÅ
-	unsigned short bg_inode_table;			//inode±íµÄÆğÊ¼¿éºÅ
-	unsigned short bg_free_blocks_count;	//±¾×é¿ÕÏĞ¿é¸öÊı
-	unsigned short bg_free_inodes_count;	//±¾×é¿ÕÏĞinode¸öÊı
-	unsigned short bg_used_dirs_count;		//±¾×éÄ¿Â¼¸öÊı
-	char bg_password[10];					//µÇÂ¼ÃÜÂë
+    char bg_volume_name[10];                //å·å
+    unsigned short bg_block_bitmap;         //ä¿å­˜æ•°æ®å—ä½å›¾çš„å—å·
+    unsigned short bg_inode_bitmap;         //ä¿å­˜inodeä½å›¾çš„å—å·
+    unsigned short bg_inode_table;          //inodeè¡¨çš„èµ·å§‹å—å·
+    unsigned short bg_free_blocks_count;    //æœ¬ç»„ç©ºé—²å—ä¸ªæ•°
+    unsigned short bg_free_inodes_count;    //æœ¬ç»„ç©ºé—²inodeä¸ªæ•°
+    unsigned short bg_used_dirs_count;      //æœ¬ç»„ç›®å½•ä¸ªæ•°
+    char bg_password[10];                   //ç™»å½•å¯†ç 
 } group_desc;
 
-//Ë÷Òı½áµã(64B)
+//ç´¢å¼•ç»“ç‚¹(64B)
 typedef struct inode {
-	unsigned short i_mode;					//ÎÄ¼şÀàĞÍ¼°·ÃÎÊÈ¨ÏŞ
-	unsigned short i_blocks;				//ÎÄ¼şµÄÊı¾İ¿é¸öÊı
-	unsigned int i_size;					//ÎÄ¼ş»òÄ¿Â¼µÄ´óĞ¡£¨×Ö½Ú£©
-	unsigned int i_atime;					//·ÃÎÊÊ±¼ä
-	unsigned int i_ctime;					//´´½¨Ê±¼ä
-	unsigned int i_mtime;					//ĞŞ¸ÄÊ±¼ä
-	unsigned int i_dtime;					//É¾³ıÊ±¼ä
-	unsigned short i_block[8];				//Ö¸ÏòÊı¾İ¿éµÄÖ¸Õë
-	char i_pad[24];							//Ìî³ä£¨0xff£©
+    unsigned short i_mode;                  //æ–‡ä»¶ç±»å‹åŠè®¿é—®æƒé™
+    unsigned short i_blocks;                //æ–‡ä»¶çš„æ•°æ®å—ä¸ªæ•°
+    unsigned int i_size;                    //æ–‡ä»¶æˆ–ç›®å½•çš„å¤§å°ï¼ˆå­—èŠ‚ï¼‰
+    unsigned int i_atime;                   //è®¿é—®æ—¶é—´
+    unsigned int i_ctime;                   //åˆ›å»ºæ—¶é—´
+    unsigned int i_mtime;                   //ä¿®æ”¹æ—¶é—´
+    unsigned int i_dtime;                   //åˆ é™¤æ—¶é—´
+    unsigned short i_block[8];              //æŒ‡å‘æ•°æ®å—çš„æŒ‡é’ˆ
+    char i_pad[24];                         //å¡«å……ï¼ˆ0xffï¼‰
 } inode;
 
-//Ä¿Â¼Ïî£¨±ä³¤7-261B£©
+//ç›®å½•é¡¹ï¼ˆå˜é•¿7-261Bï¼‰
 typedef struct dir_entry {
-	unsigned short inode;					//Ë÷Òı½áµãºÅ
-	unsigned short rec_len;					//Ä¿Â¼Ïî³¤¶È
-	unsigned char name_len;					//ÎÄ¼şÃû³¤¶È
-	unsigned char file_type;				//ÎÄ¼şÀàĞÍ
-	char name[EXT2_NAME_LEN];				//ÎÄ¼şÃû
+    unsigned short inode;                   //ç´¢å¼•ç»“ç‚¹å·
+    unsigned short rec_len;                 //ç›®å½•é¡¹é•¿åº¦
+    unsigned char name_len;                 //æ–‡ä»¶åé•¿åº¦
+    unsigned char file_type;                //æ–‡ä»¶ç±»å‹
+    char name[EXT2_NAME_LEN];               //æ–‡ä»¶å
 } dir_entry;
 
-//¶ÁĞ´»º³åÇø
-group_desc gdt;								//×éÃèÊö·û»º³åÇø
-inode inode_buf;							//Ë÷Òı½áµã»º³åÇø
-dir_entry dir_buf;							//Ä¿Â¼Ïî»º³åÇø
-unsigned char block_bitmap[BLOCK_SIZE];		//¿éÎ»Í¼»º³åÇø
-unsigned char inode_bitmap[BLOCK_SIZE];		//inodeÎ»Í¼»º³åÇø
-unsigned char gdt_Buffer[BLOCK_SIZE];		//×éÃèÊö·û¶ÁĞ´»º³åÇø
-unsigned char inode_Buffer[BLOCK_SIZE];		//Ë÷Òı½áµãÊı¾İ¿é»º³åÇø
-unsigned char Buffer[BLOCK_SIZE * 2];		//Êı¾İ¿é»º³åÇø
+//è¯»å†™ç¼“å†²åŒº
+group_desc gdt;                             //ç»„æè¿°ç¬¦ç¼“å†²åŒº
+inode inode_buf;                            //ç´¢å¼•ç»“ç‚¹ç¼“å†²åŒº
+dir_entry dir_buf;                          //ç›®å½•é¡¹ç¼“å†²åŒº
+unsigned char block_bitmap[BLOCK_SIZE];     //å—ä½å›¾ç¼“å†²åŒº
+unsigned char inode_bitmap[BLOCK_SIZE];     //inodeä½å›¾ç¼“å†²åŒº
+unsigned char gdt_Buffer[BLOCK_SIZE];       //ç»„æè¿°ç¬¦è¯»å†™ç¼“å†²åŒº
+unsigned char inode_Buffer[BLOCK_SIZE];     //ç´¢å¼•ç»“ç‚¹æ•°æ®å—ç¼“å†²åŒº
+unsigned char Buffer[BLOCK_SIZE * 2];       //æ•°æ®å—ç¼“å†²åŒº
 
-/* BufferµÄºó°ë²¿·Ö²¢²»´æ´¢Êµ¼ÊÊı¾İ£¬Ö»ÊÇÓÃÀ´·ÀÖ¹Ğ´ÈëÊı¾İÊ±Òç³ö */
+/* Bufferçš„ååŠéƒ¨åˆ†å¹¶ä¸å­˜å‚¨å®é™…æ•°æ®ï¼Œåªæ˜¯ç”¨æ¥é˜²æ­¢å†™å…¥æ•°æ®æ—¶æº¢å‡º */
 
-FILE *fp = NULL;							//ĞéÄâ´ÅÅÌ
-char current_path[256];						//µ±Ç°Â·¾¶£¨×Ö·û´®£©
-unsigned short current_dir;					//µ±Ç°Ä¿Â¼£¨Ë÷Òı½áµã£©
-unsigned short fopen_table[FOPEN_TABLE_MAX];//ÎÄ¼ş´ò¿ª±í
-char search_file_name[EXT2_NAME_LEN];		//´ı²éÕÒµÄÎÄ¼şÃû
+FILE *fp = NULL;                            //è™šæ‹Ÿç£ç›˜
+char current_path[256];                     //å½“å‰è·¯å¾„ï¼ˆå­—ç¬¦ä¸²ï¼‰
+unsigned short current_dir;                 //å½“å‰ç›®å½•ï¼ˆç´¢å¼•ç»“ç‚¹ï¼‰
+unsigned short fopen_table[FOPEN_TABLE_MAX];//æ–‡ä»¶æ‰“å¼€è¡¨
+char search_file_name[EXT2_NAME_LEN];       //å¾…æŸ¥æ‰¾çš„æ–‡ä»¶å
 
 
-/************************IO²Ù×÷************************/
+/************************IOæ“ä½œ************************/
 
-//´ÅÅÌI/O£¨ÒÔ¿éÎªµ¥Î»£©
+//ç£ç›˜I/Oï¼ˆä»¥å—ä¸ºå•ä½ï¼‰
 void disk_IO(long offset, void *buf, int rw_flag) {
-	fseek(fp, offset, SEEK_SET);
-	if (rw_flag) {
-		fread(buf, BLOCK_SIZE, 1, fp);
-	} else {
-		fwrite(buf, BLOCK_SIZE, 1, fp);
-		fflush(fp);
-	}
+    fseek(fp, offset, SEEK_SET);
+    if (rw_flag) {
+        fread(buf, BLOCK_SIZE, 1, fp);
+    } else {
+        fwrite(buf, BLOCK_SIZE, 1, fp);
+        fflush(fp);
+    }
 }
 
-//ÔØÈë×éÃèÊö·û
+//è½½å…¥ç»„æè¿°ç¬¦
 void load_group_desc(void) {
-	disk_IO(GDT_START, gdt_Buffer, READ_DISK);
-	gdt = ((group_desc *)gdt_Buffer)[0];
+    disk_IO(GDT_START, gdt_Buffer, READ_DISK);
+    gdt = ((group_desc *)gdt_Buffer)[0];
 }
 
-//¸üĞÂ×éÃèÊö·û
+//æ›´æ–°ç»„æè¿°ç¬¦
 void update_group_desc(void) {
-	memset(gdt_Buffer, 0xff, sizeof(gdt_Buffer));
-	((group_desc *)gdt_Buffer)[0] = gdt;
-	disk_IO(GDT_START, gdt_Buffer, WRITE_DISK);
+    memset(gdt_Buffer, 0xff, sizeof(gdt_Buffer));
+    ((group_desc *)gdt_Buffer)[0] = gdt;
+    disk_IO(GDT_START, gdt_Buffer, WRITE_DISK);
 }
 
-/* inode´Ó1¿ªÊ¼¼ÆÊı£¬0±íÊ¾NULL£»Êı¾İ¿é´Ó0¿ªÊ¼¼ÆÊı */
+/* inodeä»1å¼€å§‹è®¡æ•°ï¼Œ0è¡¨ç¤ºNULLï¼›æ•°æ®å—ä»0å¼€å§‹è®¡æ•° */
 
-//ÔØÈëµÚk¸öinode
+//è½½å…¥ç¬¬kä¸ªinode
 void load_inode_entry(unsigned short k) {
-	--k;
-	unsigned short i = k / 8, j = k % 8;
-	disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, READ_DISK);
-	inode_buf = ((inode *)inode_Buffer)[j];
+    --k;
+    unsigned short i = k / 8, j = k % 8;
+    disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, READ_DISK);
+    inode_buf = ((inode *)inode_Buffer)[j];
 }
 
-//¸üĞÂµÚk¸öinode
+//æ›´æ–°ç¬¬kä¸ªinode
 void update_inode_entry(unsigned short k) {
-	--k;
-	unsigned short i = k / 8, j = k % 8;
-	disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, READ_DISK);
-	((inode *)inode_Buffer)[j] = inode_buf;
-	disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, WRITE_DISK);
+    --k;
+    unsigned short i = k / 8, j = k % 8;
+    disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, READ_DISK);
+    ((inode *)inode_Buffer)[j] = inode_buf;
+    disk_IO(INODE_TABLE_START + i * BLOCK_SIZE, inode_Buffer, WRITE_DISK);
 }
 
-//ÔØÈëµÚi¸öÊı¾İ¿é
+//è½½å…¥ç¬¬iä¸ªæ•°æ®å—
 void load_block_entry(unsigned short i) {
-	disk_IO(DATA_BLOCK_START + i * BLOCK_SIZE, Buffer, READ_DISK);
+    disk_IO(DATA_BLOCK_START + i * BLOCK_SIZE, Buffer, READ_DISK);
 }
 
-//¸üĞÂµÚi¸öÊı¾İ¿é
+//æ›´æ–°ç¬¬iä¸ªæ•°æ®å—
 void update_block_entry(unsigned short i) {
-	disk_IO(DATA_BLOCK_START + i * BLOCK_SIZE, Buffer, WRITE_DISK);
+    disk_IO(DATA_BLOCK_START + i * BLOCK_SIZE, Buffer, WRITE_DISK);
 }
 
-//ÔØÈëÊı¾İ¿éÎ»Í¼
+//è½½å…¥æ•°æ®å—ä½å›¾
 void load_block_bitmap(void) {
-	disk_IO(BLOCK_BITMAP_START, block_bitmap, READ_DISK);
+    disk_IO(BLOCK_BITMAP_START, block_bitmap, READ_DISK);
 }
 
-//¸üĞÂÊı¾İ¿éÎ»Í¼
+//æ›´æ–°æ•°æ®å—ä½å›¾
 void update_block_bitmap(void) {
-	disk_IO(BLOCK_BITMAP_START, block_bitmap, WRITE_DISK);
+    disk_IO(BLOCK_BITMAP_START, block_bitmap, WRITE_DISK);
 }
 
-//ÔØÈëinodeÎ»Í¼
+//è½½å…¥inodeä½å›¾
 void load_inode_bitmap(void) {
-	disk_IO(INODE_BITMAP_START, inode_bitmap, READ_DISK);
+    disk_IO(INODE_BITMAP_START, inode_bitmap, READ_DISK);
 }
 
-//¸üĞÂinodeÎ»Í¼
+//æ›´æ–°inodeä½å›¾
 void update_inode_bitmap(void) {
-	disk_IO(INODE_BITMAP_START, inode_bitmap, WRITE_DISK);
+    disk_IO(INODE_BITMAP_START, inode_bitmap, WRITE_DISK);
 }
 
 
-/*************************µ×²ã*************************/
+/*************************åº•å±‚*************************/
 
-//·µ»ØÎ»Í¼ÖĞµÄµÚÒ»¸ö0µÄÎ»ÖÃ
+//è¿”å›ä½å›¾ä¸­çš„ç¬¬ä¸€ä¸ª0çš„ä½ç½®
 int bitmap_find_0(unsigned char bitmap[]) {
-	for (int i = 0; i < BLOCK_SIZE; ++i) {
-		unsigned char mask = 0b10000000;
-		if (bitmap[i] == 0b11111111)
-			continue;
-		for (int j = 0; j < 8; ++j) {
-			if (!(bitmap[i] & mask))
-				return i * 8 + j;
-			mask >>= 1;
-		}
-	}
-	return -1;
+    for (int i = 0; i < BLOCK_SIZE; ++i) {
+        unsigned char mask = 0b10000000;
+        if (bitmap[i] == 0b11111111)
+            continue;
+        for (int j = 0; j < 8; ++j) {
+            if (!(bitmap[i] & mask))
+                return i * 8 + j;
+            mask >>= 1;
+        }
+    }
+    return -1;
 }
 
-//½«Î»Í¼ÖĞµÄµÚkÎ»È¡·´
+//å°†ä½å›¾ä¸­çš„ç¬¬kä½å–å
 void bitmap_neg_k(unsigned char bitmap[], int k) {
-	int i = k / 8, j = k % 8;
-	unsigned char mask = 0b10000000;
-	for (int t = 0; t < j; ++t)
-		mask >>= 1;
-	bitmap[i] ^= mask;
+    int i = k / 8, j = k % 8;
+    unsigned char mask = 0b10000000;
+    for (int t = 0; t < j; ++t)
+        mask >>= 1;
+    bitmap[i] ^= mask;
 }
 
-//³õÊ¼»¯inode
+//åˆå§‹åŒ–inode
 void initialize_inode(void) {
-	inode_buf.i_mode = FT_UNKNOWN;
-	inode_buf.i_mode <<= 8;
-	//Ä¬ÈÏµÄ·ÃÎÊÈ¨ÏŞ£º¿É¶Á¿ÉĞ´²»¿ÉÖ´ĞĞ
-	((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000110;
-	inode_buf.i_blocks = 0;
-	inode_buf.i_size = 0;
-	inode_buf.i_atime = time(NULL);
-	inode_buf.i_ctime = time(NULL);
-	inode_buf.i_mtime = time(NULL);
-	inode_buf.i_dtime = 0;
-	memset(inode_buf.i_block, 0, sizeof(inode_buf.i_block));
-	memset(inode_buf.i_pad, 0xff, sizeof(inode_buf.i_pad));
+    inode_buf.i_mode = FT_UNKNOWN;
+    inode_buf.i_mode <<= 8;
+    //é»˜è®¤çš„è®¿é—®æƒé™ï¼šå¯è¯»å¯å†™ä¸å¯æ‰§è¡Œ
+    ((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000110;
+    inode_buf.i_blocks = 0;
+    inode_buf.i_size = 0;
+    inode_buf.i_atime = time(NULL);
+    inode_buf.i_ctime = time(NULL);
+    inode_buf.i_mtime = time(NULL);
+    inode_buf.i_dtime = 0;
+    memset(inode_buf.i_block, 0, sizeof(inode_buf.i_block));
+    memset(inode_buf.i_pad, 0xff, sizeof(inode_buf.i_pad));
 }
 
-//·ÖÅäinode
+//åˆ†é…inode
 unsigned short new_inode(void) {
-	load_group_desc();
-	if (gdt.bg_free_inodes_count) {
-		//¸üĞÂinodeÎ»Í¼
-		load_inode_bitmap();
-		unsigned short i = bitmap_find_0(inode_bitmap);
-		bitmap_neg_k(inode_bitmap, i);
-		update_inode_bitmap();
-		//¸üĞÂinode±í
-		initialize_inode();
-		update_inode_entry(i + 1);
-		//¸üĞÂ×éÃèÊö·û
-		gdt.bg_free_inodes_count--;
-		update_group_desc();
-		return i + 1;
-	} else {
-		printf("There is no inode to be allocated!\n");
-		return 0;
-	}
+    load_group_desc();
+    if (gdt.bg_free_inodes_count) {
+        //æ›´æ–°inodeä½å›¾
+        load_inode_bitmap();
+        unsigned short i = bitmap_find_0(inode_bitmap);
+        bitmap_neg_k(inode_bitmap, i);
+        update_inode_bitmap();
+        //æ›´æ–°inodeè¡¨
+        initialize_inode();
+        update_inode_entry(i + 1);
+        //æ›´æ–°ç»„æè¿°ç¬¦
+        gdt.bg_free_inodes_count--;
+        update_group_desc();
+        return i + 1;
+    } else {
+        printf("There is no inode to be allocated!\n");
+        return 0;
+    }
 }
 
-//ÊÍ·Åinode
+//é‡Šæ”¾inode
 void free_inode(unsigned short i) {
-	//¸üĞÂinodeÎ»Í¼
-	load_inode_bitmap();
-	bitmap_neg_k(inode_bitmap, i - 1);
-	update_inode_bitmap();
-	//¸üĞÂ×éÃèÊö·û
-	load_group_desc();
-	gdt.bg_free_inodes_count++;
-	update_group_desc();
+    //æ›´æ–°inodeä½å›¾
+    load_inode_bitmap();
+    bitmap_neg_k(inode_bitmap, i - 1);
+    update_inode_bitmap();
+    //æ›´æ–°ç»„æè¿°ç¬¦
+    load_group_desc();
+    gdt.bg_free_inodes_count++;
+    update_group_desc();
 }
 
-//·ÖÅäÊı¾İ¿é
+//åˆ†é…æ•°æ®å—
 unsigned short new_block(void) {
-	load_group_desc();
-	if (gdt.bg_free_blocks_count) {
-		//¸üĞÂÊı¾İ¿éÎ»Í¼
-		load_block_bitmap();
-		unsigned short i = bitmap_find_0(block_bitmap);
-		bitmap_neg_k(block_bitmap, i);
-		update_block_bitmap();
-		//¸üĞÂ×éÃèÊö·û
-		gdt.bg_free_blocks_count--;
-		update_group_desc();
-		return i;
-	} else {
-		printf("There is no block to be allocated!\n");
-		return 0;
-	}
+    load_group_desc();
+    if (gdt.bg_free_blocks_count) {
+        //æ›´æ–°æ•°æ®å—ä½å›¾
+        load_block_bitmap();
+        unsigned short i = bitmap_find_0(block_bitmap);
+        bitmap_neg_k(block_bitmap, i);
+        update_block_bitmap();
+        //æ›´æ–°ç»„æè¿°ç¬¦
+        gdt.bg_free_blocks_count--;
+        update_group_desc();
+        return i;
+    } else {
+        printf("There is no block to be allocated!\n");
+        return 0;
+    }
 }
 
-//ÊÍ·ÅÊı¾İ¿é
+//é‡Šæ”¾æ•°æ®å—
 void free_block(unsigned short i) {
-	//¸üĞÂÊı¾İ¿éÎ»Í¼
-	load_block_bitmap();
-	bitmap_neg_k(block_bitmap, i);
-	update_block_bitmap();
-	//¸üĞÂ×éÃèÊö·û
-	load_group_desc();
-	gdt.bg_free_blocks_count++;
-	update_group_desc();
+    //æ›´æ–°æ•°æ®å—ä½å›¾
+    load_block_bitmap();
+    bitmap_neg_k(block_bitmap, i);
+    update_block_bitmap();
+    //æ›´æ–°ç»„æè¿°ç¬¦
+    load_group_desc();
+    gdt.bg_free_blocks_count++;
+    update_group_desc();
 }
 
-//´´½¨Ä¿Â¼Ïî
+//åˆ›å»ºç›®å½•é¡¹
 void new_dir_entry(char file_name[], unsigned char file_type) {
-	memset(&dir_buf, 0, sizeof(dir_entry));
-	dir_buf.inode = new_inode();
-	dir_buf.name_len = strlen(file_name);
-	dir_buf.rec_len = 7 + dir_buf.name_len;
-	dir_buf.file_type = file_type;
-	strcpy(dir_buf.name, file_name);
-	//¸üĞÂinodeÎÄ¼şÀàĞÍ
-	load_inode_entry(dir_buf.inode);
-	((unsigned char *)(&(inode_buf.i_mode)))[0] = file_type;
-	char *extension = strchr(file_name, '.');
-	if (!extension || !strcmp(extension, ".exe") || !strcmp(extension, ".bin") || !strcmp(extension, ".com"))
-		((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000111;
-	update_inode_entry(dir_buf.inode);
-	//½¨Á¢Ä¿Â¼Ê±
-	if (file_type == FT_DIR) {
-		//¸üĞÂ×éÃèÊö·û
-		load_group_desc();
-		gdt.bg_used_dirs_count++;
-		update_group_desc();
-		//·ÖÅäÊı¾İ¿é
-		unsigned short i = new_block();
-		memset(Buffer, 0, sizeof(Buffer));
-		dir_entry temp;
-		//´´½¨µ±Ç°Ä¿Â¼Ïî
-		memset(&temp, 0, sizeof(dir_entry));
-		temp.inode = dir_buf.inode;
-		temp.rec_len = 8;
-		temp.name_len = 1;
-		temp.file_type = FT_DIR;
-		strcpy(temp.name, ".");
-		((dir_entry *)Buffer)[0] = temp;
-		//´´½¨ÉÏÒ»¼¶Ä¿Â¼Ïî
-		memset(&temp, 0, sizeof(dir_entry));
-		temp.inode = current_dir;
-		temp.rec_len = 9;
-		temp.name_len = 2;
-		temp.file_type = FT_DIR;
-		strcpy(temp.name, "..");
-		((dir_entry *)(Buffer + 8))[0] = temp;
-		//¸üĞÂÊı¾İ¿é
-		update_block_entry(i);
-		//¸üĞÂinode
-		load_inode_entry(dir_buf.inode);
-		inode_buf.i_blocks = 1;
-		inode_buf.i_size = 17;
-		inode_buf.i_block[0] = i;
-		((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000110;
-		update_inode_entry(dir_buf.inode);
-	}
+    memset(&dir_buf, 0, sizeof(dir_entry));
+    dir_buf.inode = new_inode();
+    dir_buf.name_len = strlen(file_name);
+    dir_buf.rec_len = 7 + dir_buf.name_len;
+    dir_buf.file_type = file_type;
+    strcpy(dir_buf.name, file_name);
+    //æ›´æ–°inodeæ–‡ä»¶ç±»å‹
+    load_inode_entry(dir_buf.inode);
+    ((unsigned char *)(&(inode_buf.i_mode)))[0] = file_type;
+    char *extension = strchr(file_name, '.');
+    if (!extension || !strcmp(extension, ".exe") || !strcmp(extension, ".bin") || !strcmp(extension, ".com"))
+        ((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000111;
+    update_inode_entry(dir_buf.inode);
+    //å»ºç«‹ç›®å½•æ—¶
+    if (file_type == FT_DIR) {
+        //æ›´æ–°ç»„æè¿°ç¬¦
+        load_group_desc();
+        gdt.bg_used_dirs_count++;
+        update_group_desc();
+        //åˆ†é…æ•°æ®å—
+        unsigned short i = new_block();
+        memset(Buffer, 0, sizeof(Buffer));
+        dir_entry temp;
+        //åˆ›å»ºå½“å‰ç›®å½•é¡¹
+        memset(&temp, 0, sizeof(dir_entry));
+        temp.inode = dir_buf.inode;
+        temp.rec_len = 8;
+        temp.name_len = 1;
+        temp.file_type = FT_DIR;
+        strcpy(temp.name, ".");
+        ((dir_entry *)Buffer)[0] = temp;
+        //åˆ›å»ºä¸Šä¸€çº§ç›®å½•é¡¹
+        memset(&temp, 0, sizeof(dir_entry));
+        temp.inode = current_dir;
+        temp.rec_len = 9;
+        temp.name_len = 2;
+        temp.file_type = FT_DIR;
+        strcpy(temp.name, "..");
+        ((dir_entry *)(Buffer + 8))[0] = temp;
+        //æ›´æ–°æ•°æ®å—
+        update_block_entry(i);
+        //æ›´æ–°inode
+        load_inode_entry(dir_buf.inode);
+        inode_buf.i_blocks = 1;
+        inode_buf.i_size = 17;
+        inode_buf.i_block[0] = i;
+        ((unsigned char *)(&(inode_buf.i_mode)))[1] = 0b00000110;
+        update_inode_entry(dir_buf.inode);
+    }
 }
 
-//²é¿´ÎÄ¼şÊÇ·ñ´ò¿ª
+//æŸ¥çœ‹æ–‡ä»¶æ˜¯å¦æ‰“å¼€
 unsigned short is_open(unsigned short inode_num) {
-	for (int i = 0; i < FOPEN_TABLE_MAX; ++i)
-		if (fopen_table[i] == inode_num)
-			return 1;
-	return 0;
+    for (int i = 0; i < FOPEN_TABLE_MAX; ++i)
+        if (fopen_table[i] == inode_num)
+            return 1;
+    return 0;
 }
 
-//·ÃÎÊÎÄ¼şµÄËùÓĞÊı¾İ¿é
+//è®¿é—®æ–‡ä»¶çš„æ‰€æœ‰æ•°æ®å—
+//å·²éªŒè¯ä¸¤çº§ç´¢å¼•æ²¡æœ‰é—®é¢˜ï¼Œä¸‰çº§ç´¢å¼•å°šä¸æ¸…æ¥š
 /*
-ÔÚĞ´ÊµÑé±¨¸æÊ±£¬Í»È»ÒâÊ¶µ½Ö®Ç°µÄÒ»¸ö´íÎó¡£
-ÎÒ°Ñinode.i_blocksÎóÈÏÎªÊÇ8¸öÖ¸ÏòÊı¾İ¿éµÄÖ¸ÕëµÄÊ¹ÓÃ¸öÊı£¬
-µ«ËüÊµ¼ÊÉÏÓ¦ÊÇÎÄ¼şµÄÊı¾İ¿é¸öÊı£¬¿ÉÒÔ¸ù¾İÕâ¸öĞÅÏ¢ÇáËÉµØÈ·¶¨
-Ã¿¸öÊı¾İ¿é¾¿¾¹ÊÇÍ¨¹ıÖ±½ÓË÷Òı»¹ÊÇ¼ä½ÓË÷Òı·ÃÎÊ¡£
-¾ßÌåÓ°Ïìµ½µÄº¯ÊıÓĞaccess_file¡¢add_file_block
+åœ¨å†™å®éªŒæŠ¥å‘Šæ—¶ï¼Œçªç„¶æ„è¯†åˆ°ä¹‹å‰çš„ä¸€ä¸ªé”™è¯¯ã€‚
+æˆ‘æŠŠinode.i_blocksè¯¯è®¤ä¸ºæ˜¯8ä¸ªæŒ‡å‘æ•°æ®å—çš„æŒ‡é’ˆçš„ä½¿ç”¨ä¸ªæ•°ï¼Œ
+ä½†å®ƒå®é™…ä¸Šåº”æ˜¯æ–‡ä»¶çš„æ•°æ®å—ä¸ªæ•°ï¼Œå¯ä»¥æ ¹æ®è¿™ä¸ªä¿¡æ¯è½»æ¾åœ°ç¡®å®š
+æ¯ä¸ªæ•°æ®å—ç©¶ç«Ÿæ˜¯é€šè¿‡ç›´æ¥ç´¢å¼•è¿˜æ˜¯é—´æ¥ç´¢å¼•è®¿é—®ã€‚
+å…·ä½“å½±å“åˆ°çš„å‡½æ•°æœ‰access_fileã€add_file_block
 */
 unsigned short access_file(unsigned short inode_num, unsigned short (*func)(unsigned short)) {
-	//func¶ÔÒ»¸öÊı¾İ¿é½øĞĞ²Ù×÷£¬µ±·µ»ØÖµ·ÇÁãÊ±£¬ÍË³ö¶ÔÎÄ¼şµÄ·ÃÎÊ
-	load_inode_entry(inode_num);
-	unsigned short indirect_1 = 0, indirect_2 = 0;
-	for (unsigned short i = 0; i < inode_buf.i_blocks; /**/) {
-		if (i < 6) {
-			//Ö±½ÓË÷Òı
-			load_block_entry(inode_buf.i_block[i]);
-			unsigned short ret = func(inode_buf.i_block[i]);
-			update_block_entry(inode_buf.i_block[i]);
-			++i;
-			if (ret)
-				return ret;
-		} else if (i == 6) {
-			//Ò»¼¶¼ä½ÓË÷Òı
-			load_block_entry(inode_buf.i_block[i]);
-			unsigned short j;
-			if (indirect_1 < BLOCK_SIZE / sizeof(unsigned short))
-				j = ((unsigned short *)Buffer)[indirect_1];
-			if (j == 0 || indirect_1 == BLOCK_SIZE / sizeof(unsigned short)) {
-				++i;
-				indirect_1 = 0;
-				continue;
-			}
-			++indirect_1;
-			load_block_entry(j);
-			unsigned short ret = func(j);
-			update_block_entry(j);
-			if (ret)
-				return ret;
-		} else {
-			//¶ş¼¶¼ä½ÓË÷Òı
-			load_block_entry(inode_buf.i_block[i]);
-			unsigned short j, k;
-			if (indirect_1 < BLOCK_SIZE / sizeof(unsigned short))
-				j = ((unsigned short *)Buffer)[indirect_1];
-			if (j == 0 || indirect_1 == BLOCK_SIZE / sizeof(unsigned short))
-				break;
-			load_block_entry(j);
-			if (indirect_2 < BLOCK_SIZE / sizeof(unsigned short))
-				k = ((unsigned short *)Buffer)[indirect_2];
-			if (k == 0)
-				break;
-			if (indirect_2 == BLOCK_SIZE / sizeof(unsigned short)) {
-				++indirect_1;
-				indirect_2 = 0;
-				continue;
-			}
-			++indirect_2;
-			load_block_entry(k);
-			unsigned short ret = func(k);
-			update_block_entry(k);
-			if (ret)
-				return ret;
-		}
-	}
-	return 0;
+    //funcå¯¹ä¸€ä¸ªæ•°æ®å—è¿›è¡Œæ“ä½œï¼Œå½“è¿”å›å€¼éé›¶æ—¶ï¼Œé€€å‡ºå¯¹æ–‡ä»¶çš„è®¿é—®
+    load_inode_entry(inode_num);
+    unsigned short indirect_1 = 0, indirect_2 = 0;
+    for (unsigned short i = 0; i < inode_buf.i_blocks; /**/) {
+        if (i < 6) {
+            //ç›´æ¥ç´¢å¼•
+            load_block_entry(inode_buf.i_block[i]);
+            unsigned short ret = func(inode_buf.i_block[i]);
+            update_block_entry(inode_buf.i_block[i]);
+            ++i;
+            if (ret)
+                return ret;
+        } else if (i == 6) {
+            //ä¸€çº§é—´æ¥ç´¢å¼•
+            load_block_entry(inode_buf.i_block[i]);
+            unsigned short j;
+            if (indirect_1 < BLOCK_SIZE / sizeof(unsigned short))
+                j = ((unsigned short *)Buffer)[indirect_1];
+            if (j == 0 || indirect_1 == BLOCK_SIZE / sizeof(unsigned short)) {
+                ++i;
+                indirect_1 = 0;
+                continue;
+            }
+            ++indirect_1;
+            load_block_entry(j);
+            unsigned short ret = func(j);
+            update_block_entry(j);
+            if (ret)
+                return ret;
+        } else {
+            //äºŒçº§é—´æ¥ç´¢å¼•
+            load_block_entry(inode_buf.i_block[i]);
+            unsigned short j, k;
+            if (indirect_1 < BLOCK_SIZE / sizeof(unsigned short))
+                j = ((unsigned short *)Buffer)[indirect_1];
+            if (j == 0 || indirect_1 == BLOCK_SIZE / sizeof(unsigned short))
+                break;
+            load_block_entry(j);
+            if (indirect_2 < BLOCK_SIZE / sizeof(unsigned short))
+                k = ((unsigned short *)Buffer)[indirect_2];
+            if (k == 0)
+                break;
+            if (indirect_2 == BLOCK_SIZE / sizeof(unsigned short)) {
+                ++indirect_1;
+                indirect_2 = 0;
+                continue;
+            }
+            ++indirect_2;
+            load_block_entry(k);
+            unsigned short ret = func(k);
+            update_block_entry(k);
+            if (ret)
+                return ret;
+        }
+    }
+    return 0;
 }
 
-//ÔÚµ¥¸öÊı¾İ¿éÖĞ²éÕÒ¿ÕÏĞÎ»ÖÃ²¢Ğ´ÈëÄ¿Â¼Ïî
+//åœ¨å•ä¸ªæ•°æ®å—ä¸­æŸ¥æ‰¾ç©ºé—²ä½ç½®å¹¶å†™å…¥ç›®å½•é¡¹
 unsigned short search_free_dir_in_block(unsigned short block) {
-	unsigned short current_pos = 0;
-	//È·±£´æÔÚ temp.inode == 0
-	memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
-	dir_entry temp = ((dir_entry *)Buffer)[0];
-	do {
-		unsigned short k = temp.rec_len - temp.name_len - 7;
-		if (k >= dir_buf.rec_len) {
-			temp.rec_len = temp.name_len + 7;
-			((dir_entry *)(Buffer + current_pos))[0].rec_len = temp.rec_len;
-			dir_buf.rec_len = k;
-			((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].inode = dir_buf.inode;
-			((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].rec_len = dir_buf.rec_len;
-			((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].name_len = dir_buf.name_len;
-			((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].file_type = dir_buf.file_type;
-			strcpy(((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].name, dir_buf.name);
-			return 1;
-		}
-		current_pos += temp.rec_len;
-		temp = ((dir_entry *)(Buffer + current_pos))[0];
-	} while (temp.inode);
-	if (BLOCK_SIZE - current_pos > dir_buf.rec_len) {
-		((dir_entry *)(Buffer + current_pos))[0] = dir_buf;
-		return 1;
-	}
-	return 0;
+    unsigned short current_pos = 0;
+    //ç¡®ä¿å­˜åœ¨ temp.inode == 0
+    memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
+    dir_entry temp = ((dir_entry *)Buffer)[0];
+    do {
+        unsigned short k = temp.rec_len - temp.name_len - 7;
+        if (k >= dir_buf.rec_len) {
+            temp.rec_len = temp.name_len + 7;
+            ((dir_entry *)(Buffer + current_pos))[0].rec_len = temp.rec_len;
+            dir_buf.rec_len = k;
+            ((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].inode = dir_buf.inode;
+            ((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].rec_len = dir_buf.rec_len;
+            ((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].name_len = dir_buf.name_len;
+            ((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].file_type = dir_buf.file_type;
+            strcpy(((dir_entry *)(Buffer + current_pos + temp.rec_len))[0].name, dir_buf.name);
+            return 1;
+        }
+        current_pos += temp.rec_len;
+        temp = ((dir_entry *)(Buffer + current_pos))[0];
+    } while (temp.inode);
+    if (BLOCK_SIZE - current_pos > dir_buf.rec_len) {
+        ((dir_entry *)(Buffer + current_pos))[0] = dir_buf;
+        return 1;
+    }
+    return 0;
 }
 
-//ÔÚµ¥¸öÊı¾İ¿éÖĞ²éÕÒÎÄ¼ş
+//åœ¨å•ä¸ªæ•°æ®å—ä¸­æŸ¥æ‰¾æ–‡ä»¶
 unsigned short search_in_block(unsigned short block) {
-	unsigned short current_pos = 0;
-	//È·±£´æÔÚ dir_buf.inode == 0
-	memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
-	dir_buf = ((dir_entry *)Buffer)[0];
-	do {
-		if (!strcmp(dir_buf.name, search_file_name))
-			return dir_buf.inode;
-		current_pos += dir_buf.rec_len;
-		dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
-	} while (dir_buf.inode);
-	return 0;
+    unsigned short current_pos = 0;
+    //ç¡®ä¿å­˜åœ¨ dir_buf.inode == 0
+    memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
+    dir_buf = ((dir_entry *)Buffer)[0];
+    do {
+        if (!strcmp(dir_buf.name, search_file_name))
+            return dir_buf.inode;
+        current_pos += dir_buf.rec_len;
+        dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
+    } while (dir_buf.inode);
+    return 0;
 }
 
-//ÔÚµ±Ç°Ä¿Â¼ÏÂ²éÕÒÎÄ¼ş
+//åœ¨å½“å‰ç›®å½•ä¸‹æŸ¥æ‰¾æ–‡ä»¶
 unsigned short search_file(char name[]) {
-	strcpy(search_file_name, name);
-	return access_file(current_dir, search_in_block);
+    strcpy(search_file_name, name);
+    return access_file(current_dir, search_in_block);
 }
 
-//ÔÚµ¥¸öÊı¾İ¿éÖĞÉ¾³ıÄ¿Â¼Ïî
+//åœ¨å•ä¸ªæ•°æ®å—ä¸­åˆ é™¤ç›®å½•é¡¹
 unsigned short delete_in_block(unsigned short block) {
-	unsigned short current_pos = 0, pre_pos = 0;
-	//È·±£´æÔÚ dir_buf.inode == 0
-	memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
-	dir_buf = ((dir_entry *)Buffer)[0];
-	do {
-		if (!strcmp(dir_buf.name, search_file_name)) {
-			((dir_entry *)(Buffer + pre_pos))[0].rec_len += dir_buf.rec_len;
-			return dir_buf.inode;
-		}
-		pre_pos = current_pos;
-		current_pos += dir_buf.rec_len;
-		dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
-	} while (dir_buf.inode);
-	return 0;
+    unsigned short current_pos = 0, pre_pos = 0;
+    //ç¡®ä¿å­˜åœ¨ dir_buf.inode == 0
+    memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
+    dir_buf = ((dir_entry *)Buffer)[0];
+    do {
+        if (!strcmp(dir_buf.name, search_file_name)) {
+            ((dir_entry *)(Buffer + pre_pos))[0].rec_len += dir_buf.rec_len;
+            return dir_buf.inode;
+        }
+        pre_pos = current_pos;
+        current_pos += dir_buf.rec_len;
+        dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
+    } while (dir_buf.inode);
+    return 0;
 }
 
-//ÊÍ·ÅÎÄ¼şÊı¾İ¿é
+//é‡Šæ”¾æ–‡ä»¶æ•°æ®å—
 unsigned short free_file_block(unsigned short block) {
-	free_block(block);
-	return 0;
+    free_block(block);
+    return 0;
 }
 
-//Êä³öÎÄ¼şµ¥¸öÊı¾İ¿éµÄÄÚÈİ
+//è¾“å‡ºæ–‡ä»¶å•ä¸ªæ•°æ®å—çš„å†…å®¹
 unsigned short print_file(unsigned short block) {
-	for (unsigned short i = 0; i < BLOCK_SIZE; ++i) {
-		if (Buffer[i] == 0)
-			return 1;
-		putchar(Buffer[i]);
-	}
-	return 0;
+    for (unsigned short i = 0; i < BLOCK_SIZE; ++i) {
+        if (Buffer[i] == 0)
+            return 1;
+        putchar(Buffer[i]);
+    }
+    return 0;
 }
 
-//Êä³öÄ¿Â¼µ¥¸öÊı¾İ¿éµÄÄÚÈİ
+//è¾“å‡ºç›®å½•å•ä¸ªæ•°æ®å—çš„å†…å®¹
 unsigned short print_dir(unsigned short block) {
-	inode inode_temp = inode_buf;
-	unsigned short current_pos = 0;
-	//È·±£´æÔÚ dir_buf.inode == 0
-	memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
-	dir_buf = ((dir_entry *)Buffer)[0];
-	do {
-		load_inode_entry(dir_buf.inode);
-		printf("%-10s", dir_buf.name);
-		switch (dir_buf.file_type) {
-			case FT_DIR:
-				printf("<DIR>   ");
-				break;
-			case FT_REG_FILE:
-				printf("<FILE>  ");
-				break;
-			default:
-				printf("unknown ");
-		}
-		switch (((unsigned char *)(&(inode_buf.i_mode)))[1]) {
-			case 2:
-				printf("__w__    ");
-				break;
-			case 4:
-				printf("r____    ");
-				break;
-			case 6:
-				printf("r_w__    ");
-				break;
-			case 7:
-				printf("r_w_x    ");
-				break;
-			default:
-				printf("error  ");
-		}
-		printf("%-12hu", inode_buf.i_size);
-		time_t temp;
-		char time_str[26];
-		temp = inode_buf.i_ctime;
-		strcpy(time_str, ctime(&temp));
-		time_str[24] = '\0';
-		printf("%s  ", time_str);
-		temp = inode_buf.i_atime;
-		strcpy(time_str, ctime(&temp));
-		time_str[24] = '\0';
-		printf("%s  ", time_str);
-		temp = inode_buf.i_mtime;
-		strcpy(time_str, ctime(&temp));
-		time_str[24] = '\0';
-		printf("%s  \n", time_str);
-		current_pos += dir_buf.rec_len;
-		dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
-	} while (dir_buf.inode);
-	inode_buf = inode_temp;
-	return 0;
+    inode inode_temp = inode_buf;
+    unsigned short current_pos = 0;
+    //ç¡®ä¿å­˜åœ¨ dir_buf.inode == 0
+    memset(Buffer + BLOCK_SIZE, 0, BLOCK_SIZE);
+    dir_buf = ((dir_entry *)Buffer)[0];
+    do {
+        load_inode_entry(dir_buf.inode);
+        printf("%-10s", dir_buf.name);
+        switch (dir_buf.file_type) {
+            case FT_DIR:
+                printf("<DIR>   ");
+                break;
+            case FT_REG_FILE:
+                printf("<FILE>  ");
+                break;
+            default:
+                printf("unknown ");
+        }
+        switch (((unsigned char *)(&(inode_buf.i_mode)))[1]) {
+            case 2:
+                printf("__w__    ");
+                break;
+            case 4:
+                printf("r____    ");
+                break;
+            case 6:
+                printf("r_w__    ");
+                break;
+            case 7:
+                printf("r_w_x    ");
+                break;
+            default:
+                printf("error  ");
+        }
+        printf("%-12hu", inode_buf.i_size);
+        time_t temp;
+        char time_str[26];
+        temp = inode_buf.i_ctime;
+        strcpy(time_str, ctime(&temp));
+        time_str[24] = '\0';
+        printf("%s  ", time_str);
+        temp = inode_buf.i_atime;
+        strcpy(time_str, ctime(&temp));
+        time_str[24] = '\0';
+        printf("%s  ", time_str);
+        temp = inode_buf.i_mtime;
+        strcpy(time_str, ctime(&temp));
+        time_str[24] = '\0';
+        printf("%s  \n", time_str);
+        current_pos += dir_buf.rec_len;
+        dir_buf = ((dir_entry *)(Buffer + current_pos))[0];
+    } while (dir_buf.inode);
+    inode_buf = inode_temp;
+    return 0;
 }
 
-//ÎªÎÄ¼şĞÂÔöÊı¾İ¿é
+//ä¸ºæ–‡ä»¶æ–°å¢æ•°æ®å—
 unsigned short add_file_block(unsigned short inode_num) {
-	unsigned short i = 0;
-	load_inode_entry(inode_num);
-	if (inode_buf.i_blocks < 6) {
-		i = new_block();
-		inode_buf.i_blocks++;
-		inode_buf.i_block[inode_buf.i_blocks - 1] = i;
-	} else if (inode_buf.i_blocks == 6) {
-		i = new_block();
-		inode_buf.i_blocks++;
-		inode_buf.i_block[inode_buf.i_blocks - 1] = i;
-		i = new_block();
-		memset(Buffer, 0, sizeof(Buffer));
-		((unsigned short *)Buffer)[0] = i;
-		update_block_entry(inode_buf.i_block[inode_buf.i_blocks - 1]);
-	} else if (inode_buf.i_blocks == 7) {
-		load_block_entry(inode_buf.i_block[6]);
-		unsigned short j;
-		for (j = 0; j < 256 && ((unsigned short *)Buffer)[j]; ++j);
-		if (j == 256) {
-			i = new_block();
-			inode_buf.i_blocks++;
-			inode_buf.i_block[inode_buf.i_blocks - 1] = i;
-			i = new_block();
-			memset(Buffer, 0, sizeof(Buffer));
-			((unsigned short *)Buffer)[0] = i;
-			update_block_entry(inode_buf.i_block[inode_buf.i_blocks - 1]);
-			unsigned short k = new_block();
-			memset(Buffer, 0, sizeof(Buffer));
-			((unsigned short *)Buffer)[0] = k;
-			update_block_entry(i);
-			i = k;
-		} else {
-			i = new_block();
-			((unsigned short *)Buffer)[j] = i;
-		}
-		update_block_entry(inode_buf.i_block[6]);
-	} else {
-		load_block_entry(inode_buf.i_block[7]);
-		unsigned short j, k;
-		for (j = 0; j < 256 && ((unsigned short *)Buffer)[j]; ++j);
-		--j;
-		load_block_entry(j);
-		for (k = 0; k < 256 && ((unsigned short *)Buffer)[k]; ++k);
-		if (k < 256) {
-			i = new_block();
-			((unsigned short *)Buffer)[k] = i;
-			update_block_entry(j);
-		} else {
-			if (j < 255) {
-				load_block_entry(inode_buf.i_block[7]);
-				++j;
-				unsigned short temp = new_block();
-				((unsigned short *)Buffer)[j] = temp;
-				update_block_entry(inode_buf.i_block[7]);
-				memset(Buffer, 0, sizeof(Buffer));
-				i = new_block();
-				((unsigned short *)Buffer)[0] = i;
-				update_block_entry(temp);
-			} else
-				printf("The file has reached the maximum capacity!\n");
-		}
-	}
-	update_inode_entry(inode_num);
-	return i;
+    unsigned short i = 0;
+    load_inode_entry(inode_num);
+    if (inode_buf.i_blocks < 6) {
+        i = new_block();
+        inode_buf.i_blocks++;
+        inode_buf.i_block[inode_buf.i_blocks - 1] = i;
+    } else if (inode_buf.i_blocks == 6) {
+        i = new_block();
+        inode_buf.i_blocks++;
+        inode_buf.i_block[inode_buf.i_blocks - 1] = i;
+        i = new_block();
+        memset(Buffer, 0, sizeof(Buffer));
+        ((unsigned short *)Buffer)[0] = i;
+        update_block_entry(inode_buf.i_block[inode_buf.i_blocks - 1]);
+    } else if (inode_buf.i_blocks == 7) {
+        load_block_entry(inode_buf.i_block[6]);
+        unsigned short j;
+        for (j = 0; j < 256 && ((unsigned short *)Buffer)[j]; ++j);
+        if (j == 256) {
+            i = new_block();
+            inode_buf.i_blocks++;
+            inode_buf.i_block[inode_buf.i_blocks - 1] = i;
+            i = new_block();
+            memset(Buffer, 0, sizeof(Buffer));
+            ((unsigned short *)Buffer)[0] = i;
+            update_block_entry(inode_buf.i_block[inode_buf.i_blocks - 1]);
+            unsigned short k = new_block();
+            memset(Buffer, 0, sizeof(Buffer));
+            ((unsigned short *)Buffer)[0] = k;
+            update_block_entry(i);
+            i = k;
+        } else {
+            i = new_block();
+            ((unsigned short *)Buffer)[j] = i;
+        }
+        update_block_entry(inode_buf.i_block[6]);
+    } else {
+        load_block_entry(inode_buf.i_block[7]);
+        unsigned short j, k;
+        for (j = 0; j < 256 && ((unsigned short *)Buffer)[j]; ++j);
+        --j;
+        load_block_entry(j);
+        for (k = 0; k < 256 && ((unsigned short *)Buffer)[k]; ++k);
+        if (k < 256) {
+            i = new_block();
+            ((unsigned short *)Buffer)[k] = i;
+            update_block_entry(j);
+        } else {
+            if (j < 255) {
+                load_block_entry(inode_buf.i_block[7]);
+                ++j;
+                unsigned short temp = new_block();
+                ((unsigned short *)Buffer)[j] = temp;
+                update_block_entry(inode_buf.i_block[7]);
+                memset(Buffer, 0, sizeof(Buffer));
+                i = new_block();
+                ((unsigned short *)Buffer)[0] = i;
+                update_block_entry(temp);
+            } else
+                printf("The file has reached the maximum capacity!\n");
+        }
+    }
+    update_inode_entry(inode_num);
+    return i;
 }
 
-//gets_s()º¯ÊıÊÇC11µÄ±àÒëÆ÷À©Õ¹Ïî£¬ÓÃÓÚÌæ»»²»°²È«µÄgets()
-//ÔÚLinuxµÄgccÖĞ²¢²»Ö§³Ö¸Ãº¯Êı
-//¿ÉÊ¹ÓÃfgets()À´ÊµÏÖÖ¸¶¨¸öÊı×Ö·ûµÄ¶ÁÈ¡£¬µ«Ò²»á°ÑĞĞÎ²µÄ»»ĞĞ·û¶ÁÈë
-//Òò´ËĞèÒªÓÃ¿Õ×Ö·ûÀ´Ìæ»»»»ĞĞ·û
+//gets_s()å‡½æ•°æ˜¯C11çš„ç¼–è¯‘å™¨æ‰©å±•é¡¹ï¼Œç”¨äºæ›¿æ¢ä¸å®‰å…¨çš„gets()
+//åœ¨Linuxçš„gccä¸­å¹¶ä¸æ”¯æŒè¯¥å‡½æ•°
+//å¯ä½¿ç”¨fgets()æ¥å®ç°æŒ‡å®šä¸ªæ•°å­—ç¬¦çš„è¯»å–ï¼Œä½†ä¹Ÿä¼šæŠŠè¡Œå°¾çš„æ¢è¡Œç¬¦è¯»å…¥
+//å› æ­¤éœ€è¦ç”¨ç©ºå­—ç¬¦æ¥æ›¿æ¢æ¢è¡Œç¬¦
 char *gets_s(char *buffer, int num) {
-	if (fgets(buffer, num, stdin) != 0) {
-		size_t len = strlen(buffer);
-		if (len > 0 && buffer[len - 1] == '\n')
-			buffer[len - 1] = '\0';
-		return buffer;
-	}
-	return NULL;
+    if (fgets(buffer, num, stdin) != 0) {
+        size_t len = strlen(buffer);
+        if (len > 0 && buffer[len - 1] == '\n')
+            buffer[len - 1] = '\0';
+        return buffer;
+    }
+    return NULL;
 }
 
 
-/**********************³õÊ¼»¯ÎÄ¼şÏµÍ³**********************/
+/**********************åˆå§‹åŒ–æ–‡ä»¶ç³»ç»Ÿ**********************/
 
-//³õÊ¼»¯ÄÚ´æÊı¾İ
+//åˆå§‹åŒ–å†…å­˜æ•°æ®
 void initialize_memory(void) {
-	//Çå¿ÕÎÄ¼ş´ò¿ª±í
-	memset(fopen_table, 0, sizeof(fopen_table));
-	//³õÊ¼»¯×éÃèÊö·û
-	strcpy(gdt.bg_volume_name, VOLUME_NAME);
-	strcpy(gdt.bg_password, "666666");
-	gdt.bg_block_bitmap = 1;
-	gdt.bg_inode_bitmap = 2;
-	gdt.bg_inode_table = 3;
-	gdt.bg_free_blocks_count = DATA_BLOCK_COUNT;
-	gdt.bg_free_inodes_count = INODE_COUNT;
-	gdt.bg_used_dirs_count = 0;
-	//³õÊ¼»¯µ±Ç°Â·¾¶
-	current_dir = 1;
-	strcpy(current_path, "root");
+    //æ¸…ç©ºæ–‡ä»¶æ‰“å¼€è¡¨
+    memset(fopen_table, 0, sizeof(fopen_table));
+    //åˆå§‹åŒ–ç»„æè¿°ç¬¦
+    strcpy(gdt.bg_volume_name, VOLUME_NAME);
+    strcpy(gdt.bg_password, "666666");
+    gdt.bg_block_bitmap = 1;
+    gdt.bg_inode_bitmap = 2;
+    gdt.bg_inode_table = 3;
+    gdt.bg_free_blocks_count = DATA_BLOCK_COUNT;
+    gdt.bg_free_inodes_count = INODE_COUNT;
+    gdt.bg_used_dirs_count = 0;
+    //åˆå§‹åŒ–å½“å‰è·¯å¾„
+    current_dir = 1;
+    strcpy(current_path, "root");
 }
 
-//³õÊ¼»¯´ÅÅÌ
+//åˆå§‹åŒ–ç£ç›˜
 void initialize_disk(void) {
-	//Çå¿Õ´ÅÅÌ
-	memset(Buffer, 0, sizeof(Buffer));
-	for (int i = 0; i < DISK_SIZE; ++i)
-		disk_IO(i * BLOCK_SIZE, Buffer, WRITE_DISK);
-	//½«×éÃèÊö·ûĞ´Èë´ÅÅÌ
-	update_group_desc();
-	//´´½¨¸ùÄ¿Â¼
-	new_dir_entry("root", FT_DIR);
+    //æ¸…ç©ºç£ç›˜
+    memset(Buffer, 0, sizeof(Buffer));
+    for (int i = 0; i < DISK_SIZE; ++i)
+        disk_IO(i * BLOCK_SIZE, Buffer, WRITE_DISK);
+    //å°†ç»„æè¿°ç¬¦å†™å…¥ç£ç›˜
+    update_group_desc();
+    //åˆ›å»ºæ ¹ç›®å½•
+    new_dir_entry("root", FT_DIR);
 }
 
 
-/************************ÃüÁî²ã************************/
+/************************å‘½ä»¤å±‚************************/
 
-//µÇÂ¼
+//ç™»å½•
 unsigned short login(char password[]) {
-	load_group_desc();
-	return !(strcmp(gdt.bg_password, password));
+    load_group_desc();
+    return !(strcmp(gdt.bg_password, password));
 }
 
-//ĞŞ¸ÄÃÜÂë
+//ä¿®æ”¹å¯†ç 
 void change_password(void) {
-	printf("Old password: ");
-	char password[10];
-	gets_s(password, 9);
-	if (login(password)) {
-		printf("New password(no more than 9): ");
-		gets_s(password, 9);
-		char confirm[10];
-		printf("Confirm password: ");
-		gets_s(confirm, 9);
-		if (!strcmp(password, confirm)) {
-			load_group_desc();
-			strcpy(gdt.bg_password, password);
-			update_group_desc();
-			printf("The password is changed.\n");
-		} else
-			printf("Please try again.\n");
-	} else
-		printf("Password error!\n");
+    printf("Old password: ");
+    char password[10];
+    gets_s(password, 9);
+    if (login(password)) {
+        printf("New password(no more than 9): ");
+        gets_s(password, 9);
+        char confirm[10];
+        printf("Confirm password: ");
+        gets_s(confirm, 9);
+        if (!strcmp(password, confirm)) {
+            load_group_desc();
+            strcpy(gdt.bg_password, password);
+            update_group_desc();
+            printf("The password is changed.\n");
+        } else
+            printf("Please try again.\n");
+    } else
+        printf("Password error!\n");
 }
 
-//ÁĞ³öµ±Ç°Ä¿Â¼
+//åˆ—å‡ºå½“å‰ç›®å½•
 void dir(void) {
-	printf("name      ");
-	printf("type    ");
-	printf("mode    ");
-	printf("size(Byte)   ");
-	printf("creat time                ");
-	printf("access time               ");
-	printf("modify time               \n");
-	access_file(current_dir, print_dir);
-	load_inode_entry(current_dir);
-	inode_buf.i_atime = time(NULL);
-	update_inode_entry(current_dir);
+    printf("name      ");
+    printf("type    ");
+    printf("mode    ");
+    printf("size(Byte)   ");
+    printf("creat time                ");
+    printf("access time               ");
+    printf("modify time               \n");
+    access_file(current_dir, print_dir);
+    load_inode_entry(current_dir);
+    inode_buf.i_atime = time(NULL);
+    update_inode_entry(current_dir);
 }
 
-//½¨Á¢Ä¿Â¼
+//å»ºç«‹ç›®å½•
 void mkdir(char name[]) {
-	unsigned short i = search_file(name);
-	if (i) {
-		printf("A directory with the same name exists.\n");
-	} else {
-		new_dir_entry(name, FT_DIR);
-		//ÔÚµ±Ç°Ä¿Â¼ÏÂÌí¼ÓĞÂ½¨Ä¿Â¼Ïî
-		if (!access_file(current_dir, search_free_dir_in_block)) {
-			//Êı¾İ¿é²»¹»Ê±
-			unsigned short j = add_file_block(i);
-			memset(Buffer, 0, sizeof(Buffer));
-			((dir_entry *)Buffer)[0] = dir_buf;
-			update_block_entry(j);
-		}
-		load_inode_entry(current_dir);
-		inode_buf.i_size += (7 + strlen(name));
-		update_inode_entry(current_dir);
-	}
+    unsigned short i = search_file(name);
+    if (i) {
+        printf("A directory with the same name exists.\n");
+    } else {
+        new_dir_entry(name, FT_DIR);
+        //åœ¨å½“å‰ç›®å½•ä¸‹æ·»åŠ æ–°å»ºç›®å½•é¡¹
+        if (!access_file(current_dir, search_free_dir_in_block)) {
+            //æ•°æ®å—ä¸å¤Ÿæ—¶
+            unsigned short j = add_file_block(i);
+            memset(Buffer, 0, sizeof(Buffer));
+            ((dir_entry *)Buffer)[0] = dir_buf;
+            update_block_entry(j);
+        }
+        load_inode_entry(current_dir);
+        inode_buf.i_size += (7 + strlen(name));
+        update_inode_entry(current_dir);
+    }
 }
 
-//É¾³ı¿ÕÄ¿Â¼
+//åˆ é™¤ç©ºç›®å½•
 void rmdir(char name[]) {
-	if ((!strcmp(name, ".")) || (!strcmp(name, ".."))) {
-		printf("Wrong command!\n");
-		return;
-	}
-	unsigned short i = search_file(name);
-	if (i) {
-		load_inode_entry(i);
-		if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_DIR) {
-			printf("Wrong command!\n");
-			return;
-		}
-		if (inode_buf.i_size != 17) {
-			printf("Cannot delete non empty directory!\n");
-			return;
-		}
-		//É¾³ıµ±Ç°Ä¿Â¼ÏÂµÄÄ¿Â¼Ïî
-		access_file(current_dir, delete_in_block);
-		//ÊÍ·Åinode¼°Êı¾İ¿é
-		access_file(i, free_file_block);
-		load_inode_entry(i);
-		inode_buf.i_dtime = time(NULL);
-		update_inode_entry(i);
-		free_inode(i);
-		//¸üĞÂµ±Ç°Ä¿Â¼´óĞ¡
-		load_inode_entry(current_dir);
-		inode_buf.i_size -= (7 + strlen(name));
-		update_inode_entry(current_dir);
-		//¸üĞÂ×éÃèÊö·û
-		load_group_desc();
-		gdt.bg_used_dirs_count--;
-		update_group_desc();
-	} else {
-		printf("The directory does not exist.\n");
-	}
+    if ((!strcmp(name, ".")) || (!strcmp(name, ".."))) {
+        printf("Wrong command!\n");
+        return;
+    }
+    unsigned short i = search_file(name);
+    if (i) {
+        load_inode_entry(i);
+        if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_DIR) {
+            printf("Wrong command!\n");
+            return;
+        }
+        if (inode_buf.i_size != 17) {
+            printf("Cannot delete non empty directory!\n");
+            return;
+        }
+        //åˆ é™¤å½“å‰ç›®å½•ä¸‹çš„ç›®å½•é¡¹
+        access_file(current_dir, delete_in_block);
+        //é‡Šæ”¾inodeåŠæ•°æ®å—
+        access_file(i, free_file_block);
+        load_inode_entry(i);
+        inode_buf.i_dtime = time(NULL);
+        update_inode_entry(i);
+        free_inode(i);
+        //æ›´æ–°å½“å‰ç›®å½•å¤§å°
+        load_inode_entry(current_dir);
+        inode_buf.i_size -= (7 + strlen(name));
+        update_inode_entry(current_dir);
+        //æ›´æ–°ç»„æè¿°ç¬¦
+        load_group_desc();
+        gdt.bg_used_dirs_count--;
+        update_group_desc();
+    } else {
+        printf("The directory does not exist.\n");
+    }
 }
 
-//½¨Á¢ÎÄ¼ş
+//å»ºç«‹æ–‡ä»¶
 void create(char name[]) {
-	unsigned short i = search_file(name);
-	if (i) {
-		printf("A file with the same name exists.\n");
-	} else {
-		new_dir_entry(name, FT_REG_FILE);
-		//ÔÚµ±Ç°Ä¿Â¼ÏÂÌí¼ÓĞÂ½¨Ä¿Â¼Ïî
-		if (!access_file(current_dir, search_free_dir_in_block)) {
-			//Êı¾İ¿é²»¹»Ê±
-			unsigned short j = add_file_block(i);
-			memset(Buffer, 0, sizeof(Buffer));
-			((dir_entry *)Buffer)[0] = dir_buf;
-			update_block_entry(j);
-		}
-		load_inode_entry(current_dir);
-		inode_buf.i_size += (7 + strlen(name));
-		update_inode_entry(current_dir);
-	}
+    unsigned short i = search_file(name);
+    if (i) {
+        printf("A file with the same name exists.\n");
+    } else {
+        new_dir_entry(name, FT_REG_FILE);
+        //åœ¨å½“å‰ç›®å½•ä¸‹æ·»åŠ æ–°å»ºç›®å½•é¡¹
+        if (!access_file(current_dir, search_free_dir_in_block)) {
+            //æ•°æ®å—ä¸å¤Ÿæ—¶
+            unsigned short j = add_file_block(i);
+            memset(Buffer, 0, sizeof(Buffer));
+            ((dir_entry *)Buffer)[0] = dir_buf;
+            update_block_entry(j);
+        }
+        load_inode_entry(current_dir);
+        inode_buf.i_size += (7 + strlen(name));
+        update_inode_entry(current_dir);
+    }
 }
 
-//É¾³ıÎÄ¼ş
+//åˆ é™¤æ–‡ä»¶
 void delete (char name[]) {
-	unsigned short i = search_file(name);
-	if (i) {
-		load_inode_entry(i);
-		if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_REG_FILE) {
-			printf("Wrong command!\n");
-			return;
-		}
-		if (is_open(i))
-			printf("The file is in use! Please close it first.\n");
-		else {
-			//É¾³ıµ±Ç°Ä¿Â¼ÏÂµÄÄ¿Â¼Ïî
-			access_file(current_dir, delete_in_block);
-			//ÊÍ·Åinode¼°Êı¾İ¿é
-			access_file(i, free_file_block);
-			load_inode_entry(i);
-			inode_buf.i_dtime = time(NULL);
-			update_inode_entry(i);
-			free_inode(i);
-			//¸üĞÂµ±Ç°Ä¿Â¼´óĞ¡
-			load_inode_entry(current_dir);
-			inode_buf.i_size -= (7 + strlen(name));
-			update_inode_entry(current_dir);
-		}
-	} else {
-		printf("The file does not exist.\n");
-	}
+    unsigned short i = search_file(name);
+    if (i) {
+        load_inode_entry(i);
+        if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_REG_FILE) {
+            printf("Wrong command!\n");
+            return;
+        }
+        if (is_open(i))
+            printf("The file is in use! Please close it first.\n");
+        else {
+            //åˆ é™¤å½“å‰ç›®å½•ä¸‹çš„ç›®å½•é¡¹
+            access_file(current_dir, delete_in_block);
+            //é‡Šæ”¾inodeåŠæ•°æ®å—
+            access_file(i, free_file_block);
+            load_inode_entry(i);
+            inode_buf.i_dtime = time(NULL);
+            update_inode_entry(i);
+            free_inode(i);
+            //æ›´æ–°å½“å‰ç›®å½•å¤§å°
+            load_inode_entry(current_dir);
+            inode_buf.i_size -= (7 + strlen(name));
+            update_inode_entry(current_dir);
+        }
+    } else {
+        printf("The file does not exist.\n");
+    }
 }
 
-//ÇĞ»»µ¥¼¶Ä¿Â¼
+//åˆ‡æ¢å•çº§ç›®å½•
 void cd(char path[]) {
-	if (!strcmp(path, "") || !strcmp(path, "~")) {
-		current_dir = 1;
-		strcpy(current_path, "root");
-	} else if (!strcmp(path, ".")) {
-		;	//do nothing
-	} else if (!strcmp(path, "..")) {
-		load_inode_entry(current_dir);
-		load_block_entry(inode_buf.i_block[0]);
-		current_dir = ((dir_entry *)(Buffer + 8))[0].inode;
-		for (int k = strlen(current_path); k >= 0; --k) {
-			if (current_path[k] == '/') {
-				current_path[k] = '\0';
-				break;
-			}
-		}
-	} else {
-		unsigned short i = search_file(path);
-		if (i) {
-			load_inode_entry(i);
-			if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_DIR) {
-				printf("No such directory exits!\n");
-				return;
-			}
-			current_dir = i;
-			strcat(current_path, "/");
-			strcat(current_path, path);
-		} else {
-			printf("No such directory exits!\n");
-		}
-	}
+    if (!strcmp(path, "") || !strcmp(path, "~")) {
+        current_dir = 1;
+        strcpy(current_path, "root");
+    } else if (!strcmp(path, ".")) {
+        ;   //do nothing
+    } else if (!strcmp(path, "..")) {
+        load_inode_entry(current_dir);
+        load_block_entry(inode_buf.i_block[0]);
+        current_dir = ((dir_entry *)(Buffer + 8))[0].inode;
+        for (int k = strlen(current_path); k >= 0; --k) {
+            if (current_path[k] == '/') {
+                current_path[k] = '\0';
+                break;
+            }
+        }
+    } else {
+        unsigned short i = search_file(path);
+        if (i) {
+            load_inode_entry(i);
+            if (((unsigned char *)(&(inode_buf.i_mode)))[0] != FT_DIR) {
+                printf("No such directory exits!\n");
+                return;
+            }
+            current_dir = i;
+            strcat(current_path, "/");
+            strcat(current_path, path);
+        } else {
+            printf("No such directory exits!\n");
+        }
+    }
 }
 
-//¸ü¸ÄÎÄ¼ş±£»¤Âë
+//æ›´æ”¹æ–‡ä»¶ä¿æŠ¤ç 
 void attrib(char name[], unsigned char change) {
-	unsigned short i = search_file(name);
-	if (i == 0)
-		printf("The file does not exist.\n");
-	else {
-		if (change == 2 || change == 4 || change == 6 || change == 7) {
-			load_inode_entry(i);
-			((unsigned char *)(&(inode_buf.i_mode)))[1] = change;
-			inode_buf.i_atime = time(NULL);
-			inode_buf.i_mtime = time(NULL);
-			update_inode_entry(i);
-		} else
-			printf("Wrong modification!\n");
-	}
+    unsigned short i = search_file(name);
+    if (i == 0)
+        printf("The file does not exist.\n");
+    else {
+        if (change == 2 || change == 4 || change == 6 || change == 7) {
+            load_inode_entry(i);
+            ((unsigned char *)(&(inode_buf.i_mode)))[1] = change;
+            inode_buf.i_atime = time(NULL);
+            inode_buf.i_mtime = time(NULL);
+            update_inode_entry(i);
+        } else
+            printf("Wrong modification!\n");
+    }
 }
 
-//´ò¿ªÎÄ¼ş
+//æ‰“å¼€æ–‡ä»¶
 void open(char name[]) {
-	unsigned short inode_num = search_file(name);
-	if (inode_num == 0)
-		printf("The file does not exist.\n");
-	else {
-		if (is_open(inode_num))
-			printf("The file has opened.\n");
-		else {
-			load_inode_entry(inode_num);
-			unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
-			if (permission == 4 || permission == 6 || permission == 7) {
-				inode_buf.i_atime = time(NULL);
-				update_inode_entry(inode_num);
-				for (unsigned short i = 0; i < FOPEN_TABLE_MAX; ++i) {
-					if (fopen_table[i] == 0) {
-						fopen_table[i] = inode_num;
-						return;
-					}
-				}
-				printf("The number of files opened has reached the maximum.\n");
-			} else
-				printf("You do not have permission to open this file.\n");
-		}
-	}
+    unsigned short inode_num = search_file(name);
+    if (inode_num == 0)
+        printf("The file does not exist.\n");
+    else {
+        if (is_open(inode_num))
+            printf("The file has opened.\n");
+        else {
+            load_inode_entry(inode_num);
+            unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
+            if (permission == 4 || permission == 6 || permission == 7) {
+                inode_buf.i_atime = time(NULL);
+                update_inode_entry(inode_num);
+                for (unsigned short i = 0; i < FOPEN_TABLE_MAX; ++i) {
+                    if (fopen_table[i] == 0) {
+                        fopen_table[i] = inode_num;
+                        return;
+                    }
+                }
+                printf("The number of files opened has reached the maximum.\n");
+            } else
+                printf("You do not have permission to open this file.\n");
+        }
+    }
 }
 
-//¹Ø±ÕÎÄ¼ş
+//å…³é—­æ–‡ä»¶
 void close(char name[]) {
-	unsigned short inode_num = search_file(name);
-	if (inode_num == 0)
-		printf("The file does not exist.\n");
-	else {
-		if (is_open(inode_num)) {
-			load_inode_entry(inode_num);
-			inode_buf.i_atime = time(NULL);
-			update_inode_entry(inode_num);
-			for (unsigned short i = 0; i < FOPEN_TABLE_MAX; ++i) {
-				if (fopen_table[i] == inode_num) {
-					fopen_table[i] = 0;
-					return;
-				}
-			}
-		} else
-			printf("The file does not open.\n");
-	}
+    unsigned short inode_num = search_file(name);
+    if (inode_num == 0)
+        printf("The file does not exist.\n");
+    else {
+        if (is_open(inode_num)) {
+            load_inode_entry(inode_num);
+            inode_buf.i_atime = time(NULL);
+            update_inode_entry(inode_num);
+            for (unsigned short i = 0; i < FOPEN_TABLE_MAX; ++i) {
+                if (fopen_table[i] == inode_num) {
+                    fopen_table[i] = 0;
+                    return;
+                }
+            }
+        } else
+            printf("The file does not open.\n");
+    }
 }
 
-//¶ÁÎÄ¼ş
+//è¯»æ–‡ä»¶
 void read(char name[]) {
-	unsigned short i = search_file(name);
-	if (i == 0)
-		printf("The file does not exist.\n");
-	else {
-		load_inode_entry(i);
-		unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
-		if (permission == 4 || permission == 6 || permission == 7) {
-			if (is_open(i)) {
-				access_file(i, print_file);
-				inode_buf.i_atime = time(NULL);
-				update_inode_entry(i);
-			} else
-				printf("The file does not open.\n");
-		} else
-			printf("You do not have permission to read this file.\n");
-	}
+    unsigned short i = search_file(name);
+    if (i == 0)
+        printf("The file does not exist.\n");
+    else {
+        load_inode_entry(i);
+        unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
+        if (permission == 4 || permission == 6 || permission == 7) {
+            if (is_open(i)) {
+                access_file(i, print_file);
+                inode_buf.i_atime = time(NULL);
+                update_inode_entry(i);
+            } else
+                printf("The file does not open.\n");
+        } else
+            printf("You do not have permission to read this file.\n");
+    }
 }
 
-//Ğ´ÎÄ¼ş£¨ÒÔ¸½¼Ó·½Ê½£©
-int flag = 1;		//ÓÃÓÚÍË³öĞ´²Ù×÷
+//å†™æ–‡ä»¶ï¼ˆä»¥é™„åŠ æ–¹å¼ï¼‰
+int flag = 1;       //ç”¨äºé€€å‡ºå†™æ“ä½œ
 void stopWrite() { flag = 0; }
 void write(char name[]) {
-	unsigned short i = search_file(name);
-	if (i == 0)
-		printf("The file does not exist.\n");
-	else {
-		load_inode_entry(i);
-		unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
-		if (permission == 2 || permission == 6 || permission == 7) {
-			if (is_open(i)) {
-				//¶¨Î»ÎÄ¼şÄ©Î²
-				unsigned short pos = 0, j = 0;
-				if (inode_buf.i_blocks == 0) {
-					j = new_block();
-					inode_buf.i_blocks = 1;
-					inode_buf.i_block[0] = j;
-					update_inode_entry(i);
-					load_block_entry(j);
-					pos = 0;
-				} else if (inode_buf.i_blocks <= 6) {
-					j = inode_buf.i_block[inode_buf.i_blocks - 1];
-					load_block_entry(j);
-					pos = inode_buf.i_size % BLOCK_SIZE;
-					if (pos == 0) {
-						j = add_file_block(i);
-						load_block_entry(j);
-					}
-				} else if (inode_buf.i_blocks == 7) {
-					load_block_entry(inode_buf.i_block[6]);
-					pos = inode_buf.i_size / BLOCK_SIZE - 6;
-					j = ((unsigned short *)Buffer)[pos];
-					load_block_entry(j);
-					pos = inode_buf.i_size % BLOCK_SIZE;
-					if (pos == 0) {
-						j = add_file_block(i);
-						load_block_entry(j);
-					}
-				} else {
-					load_block_entry(inode_buf.i_block[7]);
-					pos = (inode_buf.i_size / BLOCK_SIZE - 6 - 256) / 256;
-					load_block_entry(((unsigned short *)Buffer)[pos]);
-					pos = (inode_buf.i_size / BLOCK_SIZE - 6 - 256) % 256;
-					j = ((unsigned short *)Buffer)[pos];
-					load_block_entry(j);
-					pos = inode_buf.i_size % BLOCK_SIZE;
-					if (pos == 0) {
-						j = add_file_block(i);
-						load_block_entry(j);
-					}
-				}
-				//Ğ´ÈëÊı¾İ¿é
-				unsigned short new_size = 0;
-				char ch = getchar();
-				//ÔÚWindowsÖĞ¿ÉÊ¹ÓÃEOF£¨crtl+z£©À´×÷ÎªÎÄ¼şÊäÈëÁ÷µÄ½áÊø
-				//µ«ÔÚLinuxÖĞÊ¹ÓÃEOF£¨ctrl+d£©Ê±£¬Ôò»á³öÏÖÒâÏë²»µ½µÄ´íÎó
-				//ÔÚLinuxÖĞÊäÈëEOF»áµ¼ÖÂºóĞøµÄËùÓĞÊäÈëº¯ÊıÊ§Ğ§
-				//Òò´Ë£¬ÔÚLinuxÏÂ¿ÉÍ¨¹ıÈíÖĞ¶ÏÀ´ÊµÏÖĞ´²Ù×÷µÄ½áÊø
-				//Í¨¹ı¶¨ÒåSIGQUIT£¨ctrl+\£©ĞÅºÅµÄ´¦Àíº¯ÊıÀ´ÍË³öĞ´²Ù×÷Ñ­»·
-				signal(SIGQUIT, stopWrite);
-				while (flag/* ch != EOF */) {
-					Buffer[pos] = ch;
-					pos++;
-					new_size++;
-					ch = getchar();
-					if (pos == BLOCK_SIZE) {
-						update_block_entry(j);
-						j = add_file_block(i);
-						load_block_entry(j);
-						pos = 0;
-					}
-				}
-				flag = 1;
-				Buffer[pos] = '\0';
-				update_block_entry(j);
-				inode_buf.i_size += new_size - 1;
-				inode_buf.i_atime = time(NULL);
-				inode_buf.i_mtime = time(NULL);
-				update_inode_entry(i);
-			} else
-				printf("The file does not open.\n");
-		} else
-			printf("You do not have permission to write this file.\n");
-	}
+    unsigned short i = search_file(name);
+    if (i == 0)
+        printf("The file does not exist.\n");
+    else {
+        load_inode_entry(i);
+        unsigned char permission = ((unsigned char *)(&(inode_buf.i_mode)))[1];
+        if (permission == 2 || permission == 6 || permission == 7) {
+            if (is_open(i)) {
+                //å®šä½æ–‡ä»¶æœ«å°¾
+                unsigned short pos = 0, j = 0;
+                if (inode_buf.i_blocks == 0) {
+                    j = new_block();
+                    inode_buf.i_blocks = 1;
+                    inode_buf.i_block[0] = j;
+                    update_inode_entry(i);
+                    load_block_entry(j);
+                    pos = 0;
+                } else if (inode_buf.i_blocks <= 6) {
+                    j = inode_buf.i_block[inode_buf.i_blocks - 1];
+                    load_block_entry(j);
+                    pos = inode_buf.i_size % BLOCK_SIZE;
+                    if (pos == 0) {
+                        j = add_file_block(i);
+                        load_block_entry(j);
+                    }
+                } else if (inode_buf.i_blocks == 7) {
+                    load_block_entry(inode_buf.i_block[6]);
+                    pos = inode_buf.i_size / BLOCK_SIZE - 6;
+                    j = ((unsigned short *)Buffer)[pos];
+                    load_block_entry(j);
+                    pos = inode_buf.i_size % BLOCK_SIZE;
+                    if (pos == 0) {
+                        j = add_file_block(i);
+                        load_block_entry(j);
+                    }
+                } else {
+                    load_block_entry(inode_buf.i_block[7]);
+                    pos = (inode_buf.i_size / BLOCK_SIZE - 6 - 256) / 256;
+                    load_block_entry(((unsigned short *)Buffer)[pos]);
+                    pos = (inode_buf.i_size / BLOCK_SIZE - 6 - 256) % 256;
+                    j = ((unsigned short *)Buffer)[pos];
+                    load_block_entry(j);
+                    pos = inode_buf.i_size % BLOCK_SIZE;
+                    if (pos == 0) {
+                        j = add_file_block(i);
+                        load_block_entry(j);
+                    }
+                }
+                //å†™å…¥æ•°æ®å—
+                unsigned short new_size = 0;
+                char ch = getchar();
+                //åœ¨Windowsä¸­å¯ä½¿ç”¨EOFï¼ˆcrtl+zï¼‰æ¥ä½œä¸ºæ–‡ä»¶è¾“å…¥æµçš„ç»“æŸ
+                //ä½†åœ¨Linuxä¸­ä½¿ç”¨EOFï¼ˆctrl+dï¼‰æ—¶ï¼Œåˆ™ä¼šå‡ºç°æ„æƒ³ä¸åˆ°çš„é”™è¯¯
+                //åœ¨Linuxä¸­è¾“å…¥EOFä¼šå¯¼è‡´åç»­çš„æ‰€æœ‰è¾“å…¥å‡½æ•°å¤±æ•ˆ
+                //å› æ­¤ï¼Œåœ¨Linuxä¸‹å¯é€šè¿‡è½¯ä¸­æ–­æ¥å®ç°å†™æ“ä½œçš„ç»“æŸ
+                //é€šè¿‡å®šä¹‰SIGQUITï¼ˆctrl+\ï¼‰ä¿¡å·çš„å¤„ç†å‡½æ•°æ¥é€€å‡ºå†™æ“ä½œå¾ªç¯
+                signal(SIGQUIT, stopWrite);
+                while (flag/* ch != EOF */) {
+                    Buffer[pos] = ch;
+                    pos++;
+                    new_size++;
+                    ch = getchar();
+                    if (pos == BLOCK_SIZE) {
+                        update_block_entry(j);
+                        j = add_file_block(i);
+                        load_block_entry(j);
+                        pos = 0;
+                    }
+                }
+                flag = 1;
+                Buffer[pos] = '\0';
+                update_block_entry(j);
+                inode_buf.i_size += new_size - 1;
+                inode_buf.i_atime = time(NULL);
+                inode_buf.i_mtime = time(NULL);
+                update_inode_entry(i);
+            } else
+                printf("The file does not open.\n");
+        } else
+            printf("You do not have permission to write this file.\n");
+    }
 }
 
-//ÏÔÊ¾´ÅÅÌĞÅÏ¢
+//æ˜¾ç¤ºç£ç›˜ä¿¡æ¯
 void check_disk(void) {
-	load_group_desc();
-	printf("Volume Name: %s\n", gdt.bg_volume_name);
-	printf("Block Size: %dBytes\n", BLOCK_SIZE);
-	printf("Free Block: %u\n", gdt.bg_free_blocks_count);
-	printf("Free Inode: %u\n", gdt.bg_free_inodes_count);
-	printf("Directories: %u\n", gdt.bg_used_dirs_count);
+    load_group_desc();
+    printf("Volume Name: %s\n", gdt.bg_volume_name);
+    printf("Block Size: %dBytes\n", BLOCK_SIZE);
+    printf("Free Block: %u\n", gdt.bg_free_blocks_count);
+    printf("Free Inode: %u\n", gdt.bg_free_inodes_count);
+    printf("Directories: %u\n", gdt.bg_used_dirs_count);
 }
 
-//¸ñÊ½»¯
+//æ ¼å¼åŒ–
 void format(void) {
-	initialize_memory();
-	initialize_disk();
-	printf("Format succeeded!\n");
-	check_disk();
+    initialize_memory();
+    initialize_disk();
+    printf("Format succeeded!\n");
+    check_disk();
 }
 
 
-/***********************ÓÃ»§½Ó¿Ú²ã***********************/
+/***********************ç”¨æˆ·æ¥å£å±‚***********************/
 
-//ÓÃ»§½Ó¿Ú
+//ç”¨æˆ·æ¥å£
 void shell(void) {
-	char cmd[256] = "";
-	while (1) {
-		printf("[%s]# ", current_path);
-		gets_s(cmd, 256);
-		if (!strcmp(cmd, "format")) {
-			format();
-		} else if (!strcmp(cmd, "check")) {
-			check_disk();
-		} else if (!strcmp(cmd, "password")) {
-			change_password();
-		} else if (!strcmp(cmd, "ls")) {
-			dir();
-		} else if (!strncmp(cmd, "mkdir ", 6)) {
-			mkdir(cmd + 6);
-		} else if (!strncmp(cmd, "rmdir ", 6)) {
-			rmdir(cmd + 6);
-		} else if (!strncmp(cmd, "create ", 7)) {
-			create(cmd + 7);
-		} else if (!strncmp(cmd, "delete ", 7)) {
-			delete (cmd + 7);
-		} else if (!strncmp(cmd, "cd ", 3)) {
-			cd(cmd + 3);
-		} else if (!strncmp(cmd, "chmod ", 6)) {
-			printf("modification: ");
-			unsigned char change;
-			scanf("%hhu", &change);
-			getchar();
-			attrib(cmd + 6, change);
-		} else if (!strncmp(cmd, "open ", 5)) {
-			open(cmd + 5);
-		} else if (!strncmp(cmd, "close ", 6)) {
-			close(cmd + 6);
-		} else if (!strncmp(cmd, "read ", 5)) {
-			read(cmd + 5);
-		} else if (!strncmp(cmd, "write ", 6)) {
-			write(cmd + 6);
-		} else if (!strcmp(cmd, "quit")) {
-			break;
-		} else {
-			printf("Wrong command!\n");
-		}
-	}
+    char cmd[256] = "";
+    while (1) {
+        printf("[%s]# ", current_path);
+        gets_s(cmd, 256);
+        if (!strcmp(cmd, "format")) {
+            format();
+        } else if (!strcmp(cmd, "check")) {
+            check_disk();
+        } else if (!strcmp(cmd, "password")) {
+            change_password();
+        } else if (!strcmp(cmd, "ls")) {
+            dir();
+        } else if (!strncmp(cmd, "mkdir ", 6)) {
+            mkdir(cmd + 6);
+        } else if (!strncmp(cmd, "rmdir ", 6)) {
+            rmdir(cmd + 6);
+        } else if (!strncmp(cmd, "create ", 7)) {
+            create(cmd + 7);
+        } else if (!strncmp(cmd, "delete ", 7)) {
+            delete (cmd + 7);
+        } else if (!strncmp(cmd, "cd ", 3)) {
+            cd(cmd + 3);
+        } else if (!strncmp(cmd, "chmod ", 6)) {
+            printf("modification: ");
+            unsigned char change;
+            scanf("%hhu", &change);
+            getchar();
+            attrib(cmd + 6, change);
+        } else if (!strncmp(cmd, "open ", 5)) {
+            open(cmd + 5);
+        } else if (!strncmp(cmd, "close ", 6)) {
+            close(cmd + 6);
+        } else if (!strncmp(cmd, "read ", 5)) {
+            read(cmd + 5);
+        } else if (!strncmp(cmd, "write ", 6)) {
+            write(cmd + 6);
+        } else if (!strcmp(cmd, "quit")) {
+            break;
+        } else {
+            printf("Wrong command!\n");
+        }
+    }
 }
 
 int main(void) {
-	fp = fopen("./Ext2", "rb+");
-	initialize_memory();
-	if (fp == NULL) {
-		fp = fopen("./Ext2", "wb+");
-		initialize_disk();
-	}
-	printf("Password: ");
-	char password[10];
-	gets_s(password, 9);
-	while (!login(password)) {
-		printf("Error!\n");
-		printf("Password: ");
-		gets_s(password, 9);
-	}
-	printf("************************************\n");
-	printf("    Welcome to EXT2 file system!\n");
-	printf("************************************\n");
-	shell();
-	fclose(fp);
+    fp = fopen("./Ext2", "rb+");
+    initialize_memory();
+    if (fp == NULL) {
+        fp = fopen("./Ext2", "wb+");
+        initialize_disk();
+    }
+    printf("Password: ");
+    char password[10];
+    gets_s(password, 9);
+    while (!login(password)) {
+        printf("Error!\n");
+        printf("Password: ");
+        gets_s(password, 9);
+    }
+    printf("************************************\n");
+    printf("    Welcome to EXT2 file system!\n");
+    printf("************************************\n");
+    shell();
+    fclose(fp);
 
-	return 0;
+    return 0;
 }
