@@ -1,4 +1,4 @@
-//线程中system或execl函数调用的代码，可执行文件名为hello2
+//绾跨▼涓璼ystem鎴杄xecl鍑芥暟璋冪敤鐨勪唬鐮侊紝鍙墽琛屾枃浠跺悕涓篽ello2
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -6,8 +6,8 @@
 #include <sys/syscall.h>
 
 int main() {
-	printf("Hello World!\n");
-	printf("hello: syscall(SYS_gettid) = %ld, getpid() = %d, pthread_self() = %lu\n", syscall(SYS_gettid), getpid(), pthread_self());
+    printf("Hello World!\n");
+    printf("hello: syscall(SYS_gettid) = %ld, getpid() = %d, pthread_self() = %lu\n", syscall(SYS_gettid), getpid(), pthread_self());
 
-	return 0;
+    return 0;
 }
