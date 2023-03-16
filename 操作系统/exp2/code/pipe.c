@@ -6,43 +6,43 @@
 int pid1, pid2;
 
 int main() {
-	int fd[2];
-	char InPipe[5000];		//¶¨Òå¶Á»º³åÇø
-	char c1 = '1', c2 = '2';
-	pipe(fd);				//´´½¨¹ÜµÀ
+    int fd[2];
+    char InPipe[5000];      //å®šä¹‰è¯»ç¼“å†²åŒº
+    char c1 = '1', c2 = '2';
+    pipe(fd);               //åˆ›å»ºç®¡é“
 
-	while ((pid1 = fork()) == -1);
+    while ((pid1 = fork()) == -1);
 
-	if (pid1 == 0) {
-		//×Ó½ø³Ì1
-		lockf(fd[1], 1, 0);		//Ëø¶¨¹ÜµÀ
-		for (int i = 0; i < 2000; i++)
-			write(fd[1], &c1, 1);
-		sleep(5);
-		lockf(fd[1], 0, 0);		//½â³ıËø¶¨
-		exit(0);
-	} else {
+    if (pid1 == 0) {
+        //å­è¿›ç¨‹1
+        lockf(fd[1], 1, 0);     //é”å®šç®¡é“
+        for (int i = 0; i < 2000; i++)
+            write(fd[1], &c1, 1);
+        sleep(5);
+        lockf(fd[1], 0, 0);     //è§£é™¤é”å®š
+        exit(0);
+    } else {
 
-		while ((pid2 = fork()) == -1);
+        while ((pid2 = fork()) == -1);
 
-		if (pid2 == 0) {
-			//×Ó½ø³Ì2
-			lockf(fd[1], 1, 0);		//Ëø¶¨¹ÜµÀ
-			for (int i = 0; i < 2000; i++)
-				write(fd[1], &c2, 1);
-			sleep(5);
-			lockf(fd[1], 0, 0);		//½â³ıËø¶¨
-			exit(0);
-		} else {
-			//¸¸½ø³Ì
-			wait(NULL);
-			wait(NULL);
-			read(fd[0], InPipe, 4000);
-			InPipe[4000] = '\0';
-			printf("%s\n", InPipe);
-			exit(0);
-		}
-	}
+        if (pid2 == 0) {
+            //å­è¿›ç¨‹2
+            lockf(fd[1], 1, 0);     //é”å®šç®¡é“
+            for (int i = 0; i < 2000; i++)
+                write(fd[1], &c2, 1);
+            sleep(5);
+            lockf(fd[1], 0, 0);     //è§£é™¤é”å®š
+            exit(0);
+        } else {
+            //çˆ¶è¿›ç¨‹
+            wait(NULL);
+            wait(NULL);
+            read(fd[0], InPipe, 4000);
+            InPipe[4000] = '\0';
+            printf("%s\n", InPipe);
+            exit(0);
+        }
+    }
 
-	return 0;
+    return 0;
 }
