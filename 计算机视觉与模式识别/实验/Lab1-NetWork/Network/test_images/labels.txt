@@ -1,0 +1,5 @@
+./test_images/0.jpg tensor(2)
+./test_images/1.jpg tensor(3)
+./test_images/2.jpg tensor(4)
+./test_images/3.jpg tensor(6)
+./test_images/4.jpg tensor(8)
