@@ -1,0 +1,444 @@
+在数据库主节点服务器上，切换至omm操作系统用户环境
+su - omm
+
+启动数据库服务
+gs_om -t start
+
+连接初始数据库
+gsql -d postgres -p 26000 -r
+
+创建数据库用户
+CREATE USER guo WITH PASSWORD "Bigdata@123";
+
+授权
+GRANT ALL PRIVILEGES TO guo;
+
+创建数据库
+CREATE DATABASE my_db OWNER guo;
+
+退出postgres数据库
+\q
+
+使用新用户连接到创建的数据库
+gsql -d my_db -p 26000 -U guo -W Bigdata@123 -r
+
+数据库备份
+gs_dump -f guo_db.sql -p 26000 my_db
+
+数据库恢复
+gsql -d other_db -p 26000 -f other_db.sql
+
+SQL查询执行计划可视化
+https://explain.dalibo.com/
+
+----------------------------------------------------
+
+CREATE TABLE S500 (
+    SNO VARCHAR ( 8 ) NOT NULL,
+    SNAME VARCHAR ( 15 ) NOT NULL,
+    SEX VARCHAR ( 3 ) NOT NULL,
+    BDATE DATE NOT NULL,
+    HEIGHT DEC ( 3, 2 ) NOT NULL,
+    DORM VARCHAR ( 20 ) NOT NULL,
+PRIMARY KEY ( SNO ) 
+);
+
+CREATE TABLE C500 (
+    CNO VARCHAR ( 10 ) NOT NULL,
+    CNAME VARCHAR ( 50 ) NOT NULL,
+    PERIOD INT NOT NULL,
+    CREDIT DEC ( 3, 1 ) NOT NULL,
+    TEACHER VARCHAR ( 15 ) NOT NULL,
+PRIMARY KEY ( CNO ) 
+);
+
+CREATE TABLE SC500 (
+    SNO VARCHAR ( 8 ) NOT NULL,
+    CNO VARCHAR ( 10 ) NOT NULL,
+    GRADE DEC ( 4, 1 ) DEFAULT NULL,
+    PRIMARY KEY ( SNO, CNO ),
+    FOREIGN KEY ( SNO ) REFERENCES S500 ON DELETE CASCADE,
+    FOREIGN KEY ( CNO ) REFERENCES C500 ON DELETE RESTRICT,
+CHECK ( ( GRADE IS NULL ) OR ( GRADE BETWEEN 0 AND 100 ) ) 
+);
+
+----------------------------------------------------
+
+INSERT INTO S500 ( SNO, SNAME, SEX, BDATE, HEIGHT, DORM )
+VALUES
+    ( '01032010', '王涛', '男', '2002-4-5', 1.72, '东14舍221' ),
+    ( '01032023', '孙文', '男', '2003-6-10', 1.80, '东14舍221' ),
+    ( '01032001', '张晓梅', '女', '2003-11-17', 1.58, '东1舍312' ),
+    ( '01032005', '刘静', '女', '2002-1-10', 1.63, '东1舍312' ),
+    ( '01032112', '董蔚', '男', '2002-2-20', 1.71, '东14舍221' ),
+    ( '03031011', '王倩', '女', '2003-12-20', 1.66, '东2舍104' ),
+    ( '03031014', '赵思扬', '男', '2001-6-6', 1.85, '东18舍421' ),
+    ( '03031051', '周剑', '男', '2001-5-8', 1.68, '东18舍422' ),
+    ( '03031009', '田婷', '女', '2002-8-11', 1.60, '东2舍104' ),
+    ( '03031033', '蔡明明', '男', '2002-3-12', 1.75, '东18舍423' ),
+    ( '03031056', '曹子衿', '女', '2003-12-15', 1.65, '东2舍305' );
+
+INSERT INTO C500 ( CNO, CNAME, PERIOD, CREDIT, TEACHER )
+VALUES
+    ( 'CS-01', '数据结构', 60, 3, '张军' ),
+    ( 'CS-02', '计算机组成原理', 80, 4, '王亚伟' ),
+    ( 'CS-04', '人工智能', 40, 2, '李蕾' ),
+    ( 'CS-05', '深度学习', 40, 2, '崔均' ),
+    ( 'EE-01', '信号与系统', 60, 3, '张明' ),
+    ( 'EE-02', '数字逻辑电路', 100, 5, '胡海东' ),
+    ( 'EE-03', '光电子学与光子学', 40, 2, '石韬' );
+
+INSERT INTO SC500 ( SNO, CNO, GRADE )
+VALUES
+    ( '01032010', 'CS-01', 82.0 ),
+    ( '01032010', 'CS-02', 91.0 ),
+    ( '01032010', 'CS-04', 83.5 ),
+    ( '01032001', 'CS-01', 77.5 ),
+    ( '01032001', 'CS-02', 85.0 ),
+    ( '01032001', 'CS-04', 83.0 ),
+    ( '01032005', 'CS-01', 62.0 ),
+    ( '01032005', 'CS-02', 77.0 ),
+    ( '01032005', 'CS-04', 82.0 ),
+    ( '01032023', 'CS-01', 55.0 ),
+    ( '01032023', 'CS-02', 81.0 ),
+    ( '01032023', 'CS-04', 76.0 ),
+    ( '01032112', 'CS-01', 88.0 ),
+    ( '01032112', 'CS-02', 91.5 ),
+    ( '01032112', 'CS-04', 86.0 ),
+    ( '01032112', 'CS-05', NULL ),
+    ( '03031033', 'EE-01', 93.0 ),
+    ( '03031033', 'EE-02', 89.0 ),
+    ( '03031009', 'EE-01', 88.0 ),
+    ( '03031009', 'EE-02', 78.5 ),
+    ( '03031011', 'EE-01', 91.0 ),
+    ( '03031011', 'EE-02', 86.0 ),
+    ( '03031051', 'EE-01', 78.0 ),
+    ( '03031051', 'EE-02', 58.0 ),
+    ( '03031014', 'EE-01', 79.0 ),
+    ( '03031014', 'EE-02', 71.0 );
+
+----------------------------------------------------
+(1)
+SELECT
+    CNO,
+    CNAME,
+    CREDIT 
+FROM
+    C500 
+WHERE
+    CNO LIKE 'EE-%';
+
+----------------------------------------------------
+(2)
+SELECT
+    SC500.SNO,
+    CNO,
+    GRADE 
+FROM
+    SC500,
+    S500 
+WHERE
+    SC500.SNO = S500.SNO 
+    AND SEX = '女' 
+    AND SC500.SNO NOT IN ( SELECT SNO FROM SC500 WHERE CNO = 'CS-01' );
+
+----------------------------------------------------
+(3)
+SELECT
+    * 
+FROM
+    S500 
+WHERE
+    BDATE BETWEEN '2001-01-01' AND '2001-12-31';
+
+----------------------------------------------------
+(4)
+SELECT
+    S500.SNO,
+    S500.SNAME,
+    SUM ( CASE WHEN COALESCE ( GRADE, 0 ) BETWEEN 60 AND 100 THEN CREDIT ELSE 0 END )
+    AS SUM_CREDIT 
+FROM
+    S500
+    LEFT JOIN SC500 ON S500.SNO = SC500.SNO
+    LEFT JOIN C500 ON C500.CNO = SC500.CNO 
+GROUP BY
+    S500.SNO,
+    S500.SNAME;
+
+----------------------------------------------------
+(5)
+SELECT
+    SNO 
+FROM
+    SC500 
+WHERE
+    CNO = 'CS-02' 
+    AND GRADE = (
+        SELECT
+            MAX ( GRADE ) 
+        FROM
+            SC500 
+        WHERE
+            CNO = 'CS-02' 
+            AND GRADE NOT IN ( SELECT MAX ( GRADE ) FROM SC500 WHERE CNO = 'CS-02' ) 
+    );
+
+SELECT
+    SNO
+FROM
+    SC500
+WHERE
+    CNO = 'CS-02'
+    AND GRADE = (
+        SELECT
+            DISTINCT GRADE
+        FROM
+            SC500
+        WHERE
+            CNO = 'CS-02'
+        ORDER BY
+            GRADE DESC
+        LIMIT 1, 1
+    );
+
+----------------------------------------------------
+(6)
+SELECT
+    S500.SNO,
+    SNAME,
+    AVG ( GRADE ) AS AVG_GRADE 
+FROM
+    S500,
+    SC500 
+WHERE
+    S500.SNO = SC500.SNO 
+GROUP BY
+    S500.SNO,
+    SNAME 
+HAVING
+    AVG ( GRADE ) > ALL (
+        SELECT
+            AVG ( GRADE )
+        FROM
+            S500,
+            SC500
+        WHERE
+            S500.SNO = SC500.SNO
+            AND SNAME = '王涛'
+        GROUP BY
+            S500.SNO ) 
+ORDER BY
+    S500.SNO DESC;
+
+SELECT 
+    S500.SNO, 
+    SNAME, 
+    AVG( GRADE ) AS AVG_GRADE
+FROM 
+    S500 JOIN SC500 ON S500.SNO = SC500.SNO
+GROUP BY 
+    S500.SNO, 
+    SNAME
+HAVING 
+    AVG( GRADE ) > ALL (
+        SELECT 
+            AVG( GRADE )
+        FROM 
+            SC500 
+        WHERE 
+            SNO IN (
+                SELECT 
+                    SNO
+                FROM 
+                    S500 
+                WHERE 
+                    SNAME = '王涛'
+            )
+        GROUP BY 
+            SNO
+    )
+ORDER BY 
+    S500.SNO DESC;
+
+----------------------------------------------------
+(7)
+SELECT
+    SNAME,
+    SUM ( CASE WHEN COALESCE ( GRADE, 0 ) BETWEEN 60 AND 100 THEN CREDIT ELSE 0 END )
+    AS SUM_CREDIT 
+FROM
+    S500,
+    C500,
+    SC500 
+WHERE
+    C500.CNO LIKE 'CS-%' 
+    AND C500.CNO = SC500.CNO 
+    AND S500.SNO = SC500.SNO 
+GROUP BY
+    S500.SNO,
+    SNAME 
+HAVING
+    COUNT ( * ) = ( SELECT COUNT ( CNO ) FROM C500 WHERE CNO LIKE 'CS-%' );
+
+SELECT
+    SNAME,
+    SUM_CREDIT 
+FROM
+    S500,
+    (SELECT
+        SNO,
+        SUM ( CASE WHEN COALESCE ( GRADE, 0 ) BETWEEN 60 AND 100 THEN CREDIT ELSE 0 END )
+        AS SUM_CREDIT
+    FROM
+        SC500,
+        C500
+    WHERE
+        SC500.CNO = C500.CNO
+        AND SC500.CNO LIKE 'CS-%'
+    GROUP BY
+        SNO
+    HAVING
+        COUNT ( * ) = ( SELECT COUNT ( CNO ) FROM C500 WHERE CNO LIKE 'CS-%' )
+    ) AS C
+WHERE
+    S500.SNO = C.SNO;
+
+----------------------------------------------------
+(8)
+SELECT
+    S500.SNO,
+    SNAME 
+FROM
+    S500,
+    SC500 
+WHERE
+    S500.SNO = SC500.SNO 
+GROUP BY
+    S500.SNO,
+    SNAME 
+HAVING
+    COUNT ( * ) >= 3 
+    AND AVG ( GRADE ) >= ALL (
+        SELECT
+            AVG ( GRADE )
+        FROM
+            SC500
+        GROUP BY
+            SNO
+        HAVING
+            COUNT ( * ) >= 3 );
+
+SELECT
+    S500.SNO,
+    SNAME 
+FROM
+    S500,
+    SC500 
+WHERE
+    S500.SNO = SC500.SNO 
+GROUP BY
+    S500.SNO,
+    SNAME 
+HAVING
+    COUNT ( * ) >= 3 
+    AND AVG ( GRADE ) = (
+        SELECT
+            AVG ( GRADE )
+        FROM
+            SC500
+        GROUP BY
+            SNO
+        HAVING
+            COUNT ( * ) >= 3
+        ORDER BY
+            AVG ( GRADE ) DESC
+        LIMIT 0, 1
+        );
+
+----------------------------------------------------
+
+INSERT INTO S500 ( SNO, SNAME, SEX, BDATE, HEIGHT, DORM )
+VALUES
+    ( '01032005', '刘竞', '男', '2003-12-10', 1.75, '东14舍312' );
+
+INSERT INTO C500 ( CNO, CNAME, PERIOD, CREDIT, TEACHER )
+VALUES
+    ( 'CS-03', '离散数学', 64, 4, '陈建明' );
+
+----------------------------------------------------
+
+DELETE 
+FROM
+    S500 
+WHERE
+    SNO IN (
+        SELECT
+            SNO
+        FROM
+            SC500,
+            C500
+        WHERE
+            C500.CNO = SC500.CNO
+        GROUP BY
+            SNO
+        HAVING
+            SUM ( CREDIT ) > 60 );
+
+----------------------------------------------------
+
+UPDATE
+    C500
+SET
+    PERIOD = 64,
+    CREDIT = CREDIT + 1
+WHERE
+    CNAME = '信号与系统'
+    AND TEACHER = '张明';
+
+----------------------------------------------------
+
+CREATE VIEW East_18_Male AS
+SELECT
+    SNO,
+    SNAME,
+    BDATE,
+    HEIGHT 
+FROM
+    S500 
+WHERE
+    DORM LIKE '东18舍%' 
+    AND SEX = '男';
+
+----------------------------------------------------
+
+CREATE VIEW ZhangMing_Course AS
+SELECT
+    C500.CNO,
+    CNAME,
+    AVG ( GRADE ) AS AVG_GRADE 
+FROM
+    C500,
+    SC500 
+WHERE
+    C500.CNO = SC500.CNO 
+    AND TEACHER = '张明' 
+GROUP BY
+    C500.CNO,
+    CNAME;
+
+----------------------------------------------------
+
+CREATE VIEW AI_Student AS
+SELECT
+    S500.SNO,
+    SNAME,
+    GRADE 
+FROM
+    SC500,
+    S500,
+    C500 
+WHERE
+    S500.SNO = SC500.SNO 
+    AND C500.CNO = SC500.CNO 
+    AND CNAME = '人工智能';
